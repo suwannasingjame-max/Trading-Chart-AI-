@@ -45,11 +45,11 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
   const [analysisLogs, setAnalysisLogs] = useState<AnalysisLogItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const ADMIN_PIN = '8888';
+  const ADMIN_PIN = 'Pasak167/22';
 
   const handleVerifyPin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (pinInput === ADMIN_PIN || pinInput === 'admin') {
+    if (pinInput === ADMIN_PIN || pinInput === 'Pasak167/22') {
       setIsAuthenticated(true);
       setPinError(false);
       fetchAdminData();
@@ -139,18 +139,14 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
             เข้าสู่ระบบผู้ดูแลหลังบ้าน (Admin Lock)
           </h3>
           <p className="text-xs text-slate-400 mb-6">
-            กรุณากรอกรหัสความปลอดภัย Admin PIN เพื่อเข้าดูรายชื่อสมาชิก และยอดชำระเงิน
-            <br />
-            <span className="text-emerald-400 font-mono font-bold mt-1 inline-block">
-              (รหัสผ่านเริ่มต้นสำหรับเจ้าของระบบ: 8888)
-            </span>
+            กรุณากรอกรหัสความปลอดภัยเพื่อเข้าสู่ระบบหลังบ้าน
           </p>
 
           <form onSubmit={handleVerifyPin} className="space-y-4">
             <div>
               <input
                 type="password"
-                placeholder="กรอกรหัส Admin PIN (8888)"
+                placeholder="กรอกรหัสผ่านปลอดภัย"
                 value={pinInput}
                 onChange={(e) => {
                   setPinInput(e.target.value);
@@ -159,12 +155,12 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                 className={`w-full bg-slate-950 border ${
                   pinError ? 'border-red-500 text-red-300' : 'border-slate-800 text-slate-100'
                 } rounded-2xl px-4 py-3 text-center text-lg font-mono tracking-widest focus:outline-none focus:border-emerald-500`}
-                maxLength={10}
+                maxLength={30}
                 autoFocus
               />
               {pinError && (
                 <p className="text-xs text-red-400 mt-2 font-medium">
-                  รหัส PIN ไม่ถูกต้อง! กรุณาลองใหม่อีกครั้ง (รหัสเริ่มต้นคือ 8888)
+                  รหัสผ่านไม่ถูกต้อง! กรุณาลองใหม่อีกครั้ง
                 </p>
               )}
             </div>

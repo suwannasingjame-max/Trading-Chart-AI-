@@ -1,6 +1,6 @@
 import React from 'react';
 import { UserProfile } from '../types';
-import { TrendingUp, History, Sparkles, HelpCircle, Crown, User, Bot, ShoppingBag } from 'lucide-react';
+import { TrendingUp, History, Sparkles, HelpCircle, Crown, User, BarChart2 } from 'lucide-react';
 
 interface NavbarProps {
   onOpenHistory: () => void;
@@ -9,6 +9,7 @@ interface NavbarProps {
   onOpenAuth: () => void;
   onOpenAdmin: () => void;
   onOpenEaStore: () => void;
+  onOpenPositionAudit: () => void;
   historyCount: number;
   user: UserProfile;
 }
@@ -20,6 +21,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenAuth,
   onOpenAdmin,
   onOpenEaStore,
+  onOpenPositionAudit,
   historyCount,
   user,
 }) => {
@@ -56,6 +58,19 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Action Buttons & Membership Controls */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Active Order Audit Button */}
+          <button
+            onClick={onOpenPositionAudit}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500/20 via-teal-500/20 to-emerald-500/20 hover:from-cyan-500/30 hover:to-emerald-500/30 text-cyan-300 font-bold text-xs transition border border-cyan-500/40 shadow-sm"
+            title="วิเคราะห์ออเดอร์ที่เปิดอยู่"
+          >
+            <BarChart2 className="w-4 h-4 text-cyan-400" />
+            <span className="inline">วิเคราะห์ออเดอร์ที่เข้า</span>
+            <span className="px-1.5 py-0.2 text-[9px] font-black rounded-full bg-cyan-500 text-slate-950">
+              NEW
+            </span>
+          </button>
+
           {/* Membership Badge / Quota Tracker */}
           <button
             onClick={onOpenSubscription}
@@ -91,19 +106,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>สมัครสมาชิก VIP</span>
             </button>
           )}
-
-          {/* EA Store Button */}
-          <button
-            onClick={onOpenEaStore}
-            className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-cyan-500/20 hover:from-emerald-500/30 hover:to-cyan-500/30 text-emerald-300 font-bold text-xs transition border border-emerald-500/40 shadow-sm"
-            title="ร้านค้า EA Trading Bots"
-          >
-            <Bot className="w-4 h-4 text-emerald-400 animate-pulse" />
-            <span className="inline">ร้านค้า EA</span>
-            <span className="px-1 py-0.2 text-[9px] font-black rounded-full bg-gradient-to-r from-red-500 to-amber-500 text-slate-950">
-              HOT
-            </span>
-          </button>
 
           {/* History Button */}
           <button

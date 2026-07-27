@@ -144,3 +144,40 @@ export interface AdminOverviewStats {
   todayAnalysesCount: number;
   pendingPaymentsCount: number;
 }
+
+export type AuditRecommendation = 'HOLD' | 'PARTIAL_CLOSE' | 'CLOSE_NOW';
+
+export interface PositionAuditRequest {
+  chartImage: string; // base64 or data URL
+  orderType: 'BUY' | 'SELL';
+  timeframe: string; // e.g., "M15", "H1", "H4"
+  symbol?: string; // e.g. "XAU/USD"
+  entryPrice?: string;
+  currentPrice?: string;
+  stopLoss?: string;
+  takeProfit?: string;
+  notes?: string;
+}
+
+export interface PositionAuditResult {
+  id: string;
+  timestamp: string;
+  symbol: string;
+  orderType: 'BUY' | 'SELL';
+  timeframe: string;
+  entryPrice?: string;
+  recommendation: AuditRecommendation; // 'HOLD' | 'PARTIAL_CLOSE' | 'CLOSE_NOW'
+  recommendationTitle: string;
+  recommendationSummary: string;
+  qualityScore: number; // 0 - 100
+  structureAnalysis: string;
+  cautionPoints: string[];
+  managementAdvice: string;
+  targetAdjustment?: {
+    suggestedSl?: string;
+    suggestedTp?: string;
+    trailingStopPips?: string;
+  };
+  chartImageBase64?: string;
+}
+

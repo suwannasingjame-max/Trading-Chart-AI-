@@ -14,7 +14,8 @@ import { SubscriptionModal } from './components/SubscriptionModal';
 import { AuthModal } from './components/AuthModal';
 import { AdminDashboardModal } from './components/AdminDashboardModal';
 import { EaStoreModal } from './components/EaStoreModal';
-import { Sparkles, Play, RefreshCw, AlertCircle, ShieldCheck, ArrowRight, CheckCircle2, Crown, LayoutDashboard, Bot } from 'lucide-react';
+import { PositionAuditModal } from './components/PositionAuditModal';
+import { Sparkles, Play, RefreshCw, AlertCircle, ShieldCheck, ArrowRight, CheckCircle2, Crown, LayoutDashboard, Bot, BarChart2 } from 'lucide-react';
 
 export default function App() {
   const [strategy, setStrategy] = useState<StrategyType>('SMC');
@@ -38,6 +39,7 @@ export default function App() {
   const [isAuthOpen, setIsAuthOpen] = useState<boolean>(false);
   const [isAdminOpen, setIsAdminOpen] = useState<boolean>(false);
   const [isEaStoreOpen, setIsEaStoreOpen] = useState<boolean>(false);
+  const [isPositionAuditOpen, setIsPositionAuditOpen] = useState<boolean>(false);
 
   // User Profile State
   const [user, setUser] = useState<UserProfile>(() => {
@@ -231,6 +233,7 @@ export default function App() {
         onOpenAuth={() => setIsAuthOpen(true)}
         onOpenAdmin={() => setIsAdminOpen(true)}
         onOpenEaStore={() => setIsEaStoreOpen(true)}
+        onOpenPositionAudit={() => setIsPositionAuditOpen(true)}
         historyCount={history.length}
         user={user}
       />
@@ -255,13 +258,13 @@ export default function App() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
             <button
-              onClick={() => setIsEaStoreOpen(true)}
-              className="text-xs font-bold px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-cyan-500/20 hover:from-emerald-500/30 hover:to-cyan-500/30 text-emerald-300 border border-emerald-500/40 shadow-md flex items-center gap-1.5 transition"
+              onClick={() => setIsPositionAuditOpen(true)}
+              className="text-xs font-bold px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500/20 via-teal-500/20 to-emerald-500/20 hover:from-cyan-500/30 hover:to-emerald-500/30 text-cyan-300 border border-cyan-500/40 shadow-md flex items-center gap-1.5 transition"
             >
-              <Bot className="w-4 h-4 text-emerald-400 animate-pulse" />
-              <span>ร้านค้า EA Trading Bots</span>
+              <BarChart2 className="w-4 h-4 text-cyan-400" />
+              <span>วิเคราะห์ออเดอร์ที่เข้าแล้ว</span>
             </button>
             <button
               onClick={() => setIsSubscriptionOpen(true)}
@@ -421,11 +424,12 @@ export default function App() {
       />
 
       <AuthModal
-        isOpen={isAuthOpen}
+        isOpen={!user.isLoggedIn || isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
         user={user}
         onLoginSuccess={handleLoginSuccess}
         onLogout={handleLogout}
+        isMandatory={!user.isLoggedIn}
       />
 
       <AdminDashboardModal
@@ -441,6 +445,11 @@ export default function App() {
           setIsEaStoreOpen(false);
           setIsSubscriptionOpen(true);
         }}
+      />
+
+      <PositionAuditModal
+        isOpen={isPositionAuditOpen}
+        onClose={() => setIsPositionAuditOpen(false)}
       />
     </div>
   );

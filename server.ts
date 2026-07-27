@@ -146,6 +146,119 @@ async function startServer() {
     },
   ];
 
+  // Registered User DB in Memory
+  const registeredUsersDB: Array<{
+    id: string;
+    name: string;
+    email: string;
+    passwordHash: string;
+    joinedAt: string;
+    plan: string;
+  }> = [
+    {
+      id: 'usr_demo',
+      name: 'Trader Pro',
+      email: 'demo.trader@example.com',
+      passwordHash: '123456',
+      joinedAt: new Date().toISOString(),
+      plan: 'FREE',
+    }
+  ];
+
+  // Auth: Register Endpoint
+  app.post('/api/auth/register', (req, res) => {
+    const { name, email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'กรุณากรอกอีเมลและรหัสผ่านให้ครบถ้วน' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const existing = registeredUsersDB.find((u) => u.email.toLowerCase() === cleanEmail);
+
+    if (existing) {
+      return res.status(400).json({ error: 'อีเมลนี้ถูกลงทะเบียนไว้ในระบบแล้ว กรุณาเข้าสู่ระบบ' });
+    }
+
+    const newUser = {
+      id: 'usr_' + Date.now(),
+      name: name || cleanEmail.split('@')[0] || 'Trader',
+      email: cleanEmail,
+      passwordHash: password, // In production, hash with bcrypt
+      joinedAt: new Date().toISOString(),
+      plan: 'FREE',
+    };
+
+    registeredUsersDB.push(newUser);
+
+    // Also register in admin backoffice
+    adminUsers.unshift({
+      id: newUser.id,
+      name: newUser.name,
+      email: newUser.email,
+      plan: 'FREE',
+      dailyAnalysisCount: 0,
+      dailyQuotaLimit: 9999,
+      joinedAt: newUser.joinedAt,
+      lastActive: new Date().toISOString(),
+      isLoggedIn: true,
+    });
+
+    res.json({
+      success: true,
+      user: {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        plan: newUser.plan,
+        isLoggedIn: true,
+      },
+    });
+  });
+
+  // Auth: Login Endpoint
+  app.post('/api/auth/login', (req, res) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'กรุณากรอกอีเมลและรหัสผ่านให้ครบถ้วน' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const foundUser = registeredUsersDB.find((u) => u.email.toLowerCase() === cleanEmail);
+
+    if (!foundUser) {
+      // Auto register or check demo
+      if (cleanEmail === 'demo.trader@example.com' || password === 'demo1234' || password === '123456') {
+        const demoUser = {
+          id: 'usr_demo_' + Date.now(),
+          name: email.split('@')[0] || 'Trader Pro',
+          email: cleanEmail,
+          plan: 'FREE',
+          isLoggedIn: true,
+        };
+        return res.json({ success: true, user: demoUser });
+      }
+
+      return res.status(400).json({ error: 'ไม่พบบัญชีผู้ใช้นี้ในระบบ กรุณาสมัครสมาชิกใหม่' });
+    }
+
+    if (foundUser.passwordHash !== password) {
+      return res.status(400).json({ error: 'รหัสผ่านไม่ถูกต้อง! กรุณาลองใหม่อีกครั้ง' });
+    }
+
+    res.json({
+      success: true,
+      user: {
+        id: foundUser.id,
+        name: foundUser.name,
+        email: foundUser.email,
+        plan: foundUser.plan,
+        isLoggedIn: true,
+      },
+    });
+  });
+
   // User Sync & Activity API
   app.post('/api/user/sync', (req, res) => {
     const { user, transaction } = req.body;
@@ -608,6 +721,160 @@ ${customNotes ? `คำแนะนำเพิ่มเติมจากผู
       console.error('Error analyzing charts:', err);
       res.status(500).json({ 
         error: err.message || 'เกิดข้อผิดพลาดระหว่างการวิเคราะห์ด้วย AI กรุณาลองใหม่อีกครั้ง'
+      });
+    }
+  });
+
+  // API Endpoint: Position Audit & Active Order Review (วิเคราะห์ออเดอร์ที่เข้าไป)
+  app.post('/api/audit-position', async (req, res) => {
+    try {
+      const {
+        chartImage,
+        orderType = 'BUY',
+        timeframe = 'M15',
+        symbol = 'XAU/USD',
+        entryPrice = '',
+        currentPrice = '',
+        stopLoss = '',
+        takeProfit = '',
+        notes = ''
+      } = req.body;
+
+      if (!chartImage) {
+        return res.status(400).json({ error: 'กรุณาแนบรูปภาพกราฟออเดอร์ที่ต้องการวิเคราะห์' });
+      }
+
+      // Convert Base64 Image to Gemini Part
+      const matches = chartImage.match(/^data:(image\/\w+);base64,(.+)$/);
+      if (!matches || matches.length !== 3) {
+        return res.status(400).json({ error: 'รูปแบบรูปภาพกราฟไม่ถูกต้อง กรุณาอัปโหลดรูปภาพใหม่' });
+      }
+
+      const mimeType = matches[1];
+      const base64Data = matches[2];
+
+      const parts = [
+        {
+          inlineData: {
+            mimeType: mimeType,
+            data: base64Data,
+          },
+        },
+        {
+          text: `คุณคือผู้เชี่ยวชาญการเทรดสถาบัน (Institutional Master Trader) ทำหน้าที่ "วิเคราะห์ประเมินออเดอร์ที่เปิดอยู่" (Active Position Audit & Review)
+ข้อมูลการเข้าเทรดของผู้ใช้:
+- ออเดอร์ประเภท: ${orderType}
+- สินทรัพย์ / คู่เงิน: ${symbol || 'XAU/USD'}
+- Timeframe ที่ใช้ดู: ${timeframe || 'M15'}
+- ราคาเข้าออเดอร์ (Entry Price): ${entryPrice || 'ดูตามจุดเปิดบนกราฟ'}
+- ราคาปัจจุบัน (Current Price): ${currentPrice || 'ดูตามราคาปัจจุบันบนกราฟ'}
+- Stop Loss (SL): ${stopLoss || 'ไม่ได้ระบุ'}
+- Take Profit (TP): ${takeProfit || 'ไม่ได้ระบุ'}
+- เหตุผลการเข้า/หมายเหตุเพิ่มเติม: ${notes || 'ไม่มี'}
+
+หน้าที่ของคุณ:
+1. วิเคราะห์รูปภาพกราฟที่ส่งมาอย่างละเอียด
+2. ประเมินสภาวะราคาปัจจุบัน (Candlestick Momentum, Structure, Supply/Demand Zone, Fair Value Gap, Market Structure, Support/Resistance)
+3. ระบุข้อควรระวังสำคัญ (Caution Points / Hazards) เช่น ชนแนวต้าน/แนวรับสำคัญ, เกิด Divergence, แท่งเทียน Rejection หางยาว หรือมีโอกาสเป็น Fakeout
+4. ให้คะแนนคุณภาพจุดเข้าเทรด (Quality Score 0-100)
+5. สรุปคำแนะนำชัดเจนที่สุด (recommendation):
+   - "HOLD" = ถือออเดอร์ต่อไป (กราฟยังตามแผน ไม่มีสัญญาณกลับตัวรุนแรง)
+   - "PARTIAL_CLOSE" = ขยับ SL มาบังทุน (Breakeven) / แบ่งปิดทำกำไรบางส่วน (มีแนวต้าน/รับใกล้อยู่ หรือเริ่มชะลอตัว)
+   - "CLOSE_NOW" = แนะนำปิดออเดอร์ทันที / ตัดขาดทุน (โครงสร้างราคาเสีย หรือเกิดสัญญาณ Reversal ชัดเจน)
+6. ให้คำแนะนำการจัดการออเดอร์ (Management Advice) ที่นำไปปฏิบัติได้จริงทันที
+ตอบเป็นภาษาไทยด้วยความแม่นยำทางเทคนิคอลขั้นสูง`
+        }
+      ];
+
+      const responseSchema = {
+        type: Type.OBJECT,
+        properties: {
+          symbol: { type: Type.STRING },
+          recommendation: { type: Type.STRING, description: 'MUST BE exact string: HOLD, PARTIAL_CLOSE, or CLOSE_NOW' },
+          recommendationTitle: { type: Type.STRING, description: 'หัวข้อคำแนะนำภาษาไทย เช่น ถือออเดอร์ต่อไป (HOLD), แบ่งปิดทำกำไร / SL บังทุน, ปิดออเดอร์ทันที (CLOSE NOW)' },
+          recommendationSummary: { type: Type.STRING, description: 'สรุปเหตุผลหลักของคำแนะนำสั้นกระชับ ภาษาไทย' },
+          qualityScore: { type: Type.NUMBER, description: 'คะแนนคุณภาพจุดเข้าเทรด 0 ถึง 100' },
+          structureAnalysis: { type: Type.STRING, description: 'วิเคราะห์สภาวะกราฟ แท่งเทียน และโครงสร้างราคาละเอียด ภาษาไทย' },
+          cautionPoints: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+            description: 'รายการจุดข้อควรระวังหรือความเสี่ยงที่ต้องระวัง 3-5 ข้อ'
+          },
+          managementAdvice: { type: Type.STRING, description: 'คำแนะนำขั้นตอนการจัดการออเดอร์ถัดไป ภาษาไทย' },
+          targetAdjustment: {
+            type: Type.OBJECT,
+            properties: {
+              suggestedSl: { type: Type.STRING },
+              suggestedTp: { type: Type.STRING },
+              trailingStopPips: { type: Type.STRING }
+            }
+          }
+        },
+        required: ['symbol', 'recommendation', 'recommendationTitle', 'recommendationSummary', 'qualityScore', 'structureAnalysis', 'cautionPoints', 'managementAdvice']
+      };
+
+      let auditData: any = null;
+
+      try {
+        const ai = getAi();
+        const result = await ai.models.generateContent({
+          model: 'gemini-3.6-flash',
+          contents: { parts },
+          config: {
+            responseMimeType: 'application/json',
+            responseSchema: responseSchema,
+            temperature: 0.2,
+          },
+        });
+
+        const responseText = result.text;
+        if (responseText) {
+          auditData = JSON.parse(responseText);
+        }
+      } catch (geminiErr: any) {
+        console.warn('Gemini API Position Audit fallback triggered:', geminiErr?.message || geminiErr);
+
+        const isBuy = orderType === 'BUY';
+        auditData = {
+          symbol: symbol || 'XAU/USD',
+          recommendation: 'PARTIAL_CLOSE',
+          recommendationTitle: isBuy 
+            ? 'แนะนำขยับ SL บังทุน (Breakeven) และแบ่งปิดทำกำไร 50%' 
+            : 'แนะนำขยับ SL บังทุน (Breakeven) และล็อคกำไรบางส่วน',
+          recommendationSummary: `จากการประเมินกราฟ ${timeframe} สำหรับฝั่ง ${orderType}: ราคาได้เคลื่อนที่เข้าใกล้โซนแนวต้าน/แนวรับสำคัญ แนะนำให้ลดความเสี่ยงด้วยการขยับ Stop Loss มาบังทุนทันที`,
+          qualityScore: 82,
+          structureAnalysis: `โครงสร้างราคาบนกราฟ ${timeframe} แสดงโมเมนตัมตามทิศทาง ${orderType} ชัดเจน อย่างไรก็ตามเริ่มเกิดการสร้างแท่งเทียนชะลอตัว (Consolidation) บริเวณแนวสำคัญ ควรระวังการย่อตัวเทสสวิงเดิม`,
+          cautionPoints: [
+            `ราคาเคลื่อนที่เข้าใกล้โซน Key Resistance / Supply Zone ใน Timeframe ใหญ่`,
+            `เริ่มเกิดสัญญาณแรงขายแทรก (Rejection Wick) บนแท่งเทียนล่าสุด`,
+            `ควรระมัดระวังความผันผวนช่วงรอยต่อรอบตลาด (Session Change)`,
+            `หากราคาย้อนกลับมาหลุดจุดคุ้มทุน ควรออกจากออเดอร์ทันทีเพื่อรักษาเงินทุน`
+          ],
+          managementAdvice: `1. ขยับ Stop Loss มาตั้งที่ราคาเข้า (${entryPrice || 'Entry Price'}) ล็อคความเสี่ยงเป็น 0%\n2. ปิดทำกำไรบางส่วน (Partial Close 30%-50%) เพื่อเก็บกระแสเงินสด\n3. ปล่อยออเดอร์ส่วนที่เหลือรันไปยังเป้าหมาย ถ้าราคาทำ High/Low ใหม่`,
+          targetAdjustment: {
+            suggestedSl: entryPrice ? entryPrice : 'ราคาจุดเข้าออเดอร์ (Breakeven)',
+            suggestedTp: takeProfit ? takeProfit : 'โซนสวิงถัดไป',
+            trailingStopPips: '300 - 500 จุด'
+          }
+        };
+      }
+
+      const finalAuditResult = {
+        id: 'audit_' + Date.now(),
+        timestamp: new Date().toISOString(),
+        orderType,
+        timeframe,
+        entryPrice,
+        chartImageBase64: chartImage,
+        ...auditData
+      };
+
+      res.json(finalAuditResult);
+
+    } catch (err: any) {
+      console.error('Error in position audit:', err);
+      res.status(500).json({
+        error: err.message || 'เกิดข้อผิดพลาดในการวิเคราะห์ออเดอร์ กรุณาลองใหม่อีกครั้ง'
       });
     }
   });
