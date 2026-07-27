@@ -617,11 +617,11 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
     res.json(analysisLogs);
   });
 
-  // Helper to get Gemini client
+  // Helper to get Gemini client using user's personal API Key
   const getAi = (userApiKey?: string) => {
-    const apiKey = (userApiKey && userApiKey.trim()) || process.env.GEMINI_API_KEY;
+    const apiKey = userApiKey && userApiKey.trim();
     if (!apiKey) {
-      throw new Error('ไม่พบ GEMINI_API_KEY กรุณาระบุ API Key ในการตั้งค่าหรือใน Environment Variables');
+      throw new Error('กรุณาระบุ Google Gemini API Key ส่วนตัวของคุณก่อนใช้งาน');
     }
     return new GoogleGenAI({
       apiKey,
@@ -643,11 +643,15 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
     try {
       const { h4Image, h1Image, m15Image, strategy = 'SMC', customNotes = '', customApiKey } = req.body;
 
+      if (!customApiKey || !customApiKey.trim()) {
+        return res.status(400).json({
+          error: 'กรุณาระบุ Google Gemini API Key ส่วนตัวของคุณในช่องตั้งค่าก่อนวิเคราะห์กราฟ (ระบบใช้ API Key และเครดิตของบัญชีคุณเอง)'
+        });
+      }
+
       if (!h4Image && !h1Image && !m15Image) {
         return res.status(400).json({ error: 'กรุณาอัปโหลดรูปภาพกราฟอย่างน้อย 1 Timeframe (แนะนำอัปโหลดครบ H4, H1, M15)' });
       }
-
-      const ai = getAi(customApiKey);
 
       // Strategy specific system prompts & instructions in Thai
       const strategyGuide: Record<string, string> = {
@@ -869,70 +873,15 @@ ${customNotes ? `คำแนะนำเพิ่มเติมจากผู
         const responseText = result.text;
         if (responseText) {
           parsedData = JSON.parse(responseText);
+        } else {
+          throw new Error('ไม่ได้รับผลวิเคราะห์กลับมาจาก Google Gemini');
         }
       } catch (geminiErr: any) {
-        console.warn('Gemini API call warning/fallback triggered:', geminiErr?.message || geminiErr);
-        
-        // Intelligent Fallback Trade Generator for seamless UX if API key is missing or model rate-limited
-        const fallbackSymbol = 'XAU/USD (Gold)';
-        const isBuy = strategy === 'SMC' || strategy === 'SUPPLY_DEMAND' || strategy === 'HARMONIC';
-        const entryPriceVal = 2385.50;
-        const slPriceVal = isBuy ? 2380.00 : 2391.00;
-        const tp1Val = isBuy ? 2392.50 : 2378.00;
-        const tp2Val = isBuy ? 2400.00 : 2370.00;
-        const tp3Val = isBuy ? 2415.00 : 2355.00;
-
-        parsedData = {
-          symbol: fallbackSymbol,
-          signal: isBuy ? 'BUY' : 'SELL',
-          confidenceScore: 88,
-          overallReasoning: `วิเคราะห์โครงสร้างราคา Multi-Timeframe ตามกลยุทธ์ ${strategy}: พบการเสียโครงสร้างราคา (ChoCH/BoS) พร้อมแรงซื้อ/ขายที่ชัดเจน เกิดโซนสำคัญ และการกวาด Liquidity ก่อนดีดตัวเข้าหาเป้าหมาย`,
-          marketStructure: [
-            { timeframe: 'H4', trend: isBuy ? 'Bullish' : 'Bearish', summary: 'โครงสร้างหลักเป็นเทรนด์ชัดเจน มี Order Block / Demand Zone ที่ยังสดใหม่', keyLevel: isBuy ? 'Support 2375.00' : 'Resistance 2395.00' },
-            { timeframe: 'H1', trend: isBuy ? 'Bullish' : 'Bearish', summary: 'เกิดการสร้าง Liquidity Sweep และสะสมวอลุ่มเตรียมเคลื่อนที่ตาม Major Trend', keyLevel: 'FVG Zone 2382.00 - 2386.00' },
-            { timeframe: 'M15', trend: isBuy ? 'Bullish' : 'Bearish', summary: 'เกิด Confirmation Trigger (ChoCH + Displacement) พร้อมย่อเทสโซนเพื่อเข้าสะสมออเดอร์', keyLevel: `Entry Zone ${entryPriceVal}` },
-          ],
-          tradeSetup: {
-            entryType: 'Limit Order',
-            entryPrice: entryPriceVal.toFixed(2),
-            entryPriceValue: entryPriceVal,
-            stopLoss: slPriceVal.toFixed(2),
-            stopLossValue: slPriceVal,
-            takeProfit1: tp1Val.toFixed(2),
-            takeProfit1Value: tp1Val,
-            takeProfit2: tp2Val.toFixed(2),
-            takeProfit2Value: tp2Val,
-            takeProfit3: tp3Val.toFixed(2),
-            takeProfit3Value: tp3Val,
-            riskRewardRatio: '1 : 3.2',
-            estimatedPipsSL: 55,
-            recommendedRiskPercent: '1.0% - 2.0%',
-          },
-          confluences: [
-            `ทิศทางสอดคล้องกันทั้ง 3 Timeframe (H4 -> H1 -> M15 Alignment)`,
-            `ทดสอบโซน Order Block / Supply-Demand สำคัญของระบบ ${strategy}`,
-            `เกิด Liquidity Sweep และ FVG Mitigation สมบูรณ์`,
-            `Risk:Reward Ratio คุ้มค่า (> 1:3)`
-          ],
-          summaryConditions: [
-            { step: 1, topic: 'Higher Timeframe Bias (H4)', conditionMet: true, timeframe: 'H4', details: 'แนวโน้มหลักตรงตามโครงสร้างราคา H4 Order Block', ruleType: 'Higher TF Bias' },
-            { step: 2, topic: 'Liquidity Sweep & FVG (H1)', conditionMet: true, timeframe: 'H1', details: 'มีการกวาดสภาพคล่อง Liquidity BSL/SSL และเติมเต็มช่องว่าง FVG', ruleType: 'Liquidity' },
-            { step: 3, topic: 'Entry Trigger (M15)', conditionMet: true, timeframe: 'M15', details: 'เกิดจุดกลับตัว ChoCH ใน M15 พร้อมสัญญาณแท่งเทียนยืนยัน', ruleType: 'Trigger' },
-          ],
-          invalidationScenario: `แผนเทรดนี้จะโมฆะทันทีหากราคาเคลื่อนที่ทะลุจุด Stop Loss (${slPriceVal.toFixed(2)}) และปิดแท่งเทียนเต็มแท่งนอกโซน`,
-          tradeManagement: 'เมื่อราคาเคลื่อนที่ถึง TP1 (+500 จุด) แนะนำให้ขยับ Stop Loss มาบังทุน (Breakeven - BE) และแบ่งปิดทำกำไร Partial Close 50%',
-          overlayCoords: {
-            entryYPercent: 50,
-            slYPercent: isBuy ? 78 : 22,
-            tp1YPercent: isBuy ? 35 : 65,
-            tp2YPercent: isBuy ? 22 : 78,
-            tp3YPercent: isBuy ? 12 : 88,
-            keyZones: [
-              { id: 'zone_1', type: 'ORDER_BLOCK', label: `${strategy} Key Zone`, timeframe: 'H1', yPercentMin: isBuy ? 45 : 20, yPercentMax: isBuy ? 55 : 30, xPercentMin: 15, xPercentMax: 85, colorHex: isBuy ? '#10B981' : '#EF4444' },
-              { id: 'zone_2', type: 'FAIR_VALUE_GAP', label: 'Fair Value Gap (FVG)', timeframe: 'M15', yPercentMin: isBuy ? 38 : 32, yPercentMax: isBuy ? 44 : 40, xPercentMin: 25, xPercentMax: 70, colorHex: '#38BDF8' },
-            ]
-          }
-        };
+        console.error('Gemini API call failed for user API key:', geminiErr?.message || geminiErr);
+        const msg = geminiErr?.message || String(geminiErr);
+        return res.status(400).json({
+          error: `เกิดข้อผิดพลาดในการวิเคราะห์ด้วย Gemini API Key ของคุณ: ${msg} (กรุณาตรวจสอบว่า API Key ส่วนตัวของคุณถูกต้องและมีโควตาใน Google AI Studio)`
+        });
       }
 
       // Add server-assigned ID & metadata
@@ -964,7 +913,7 @@ ${customNotes ? `คำแนะนำเพิ่มเติมจากผู
 
     } catch (err: any) {
       console.error('Error analyzing charts:', err);
-      res.status(500).json({ 
+      res.status(400).json({ 
         error: err.message || 'เกิดข้อผิดพลาดระหว่างการวิเคราะห์ด้วย AI กรุณาลองใหม่อีกครั้ง'
       });
     }
@@ -974,6 +923,7 @@ ${customNotes ? `คำแนะนำเพิ่มเติมจากผู
   app.post('/api/audit-position', async (req, res) => {
     try {
       const {
+        customApiKey,
         chartImage,
         orderType = 'BUY',
         timeframe = 'M15',
@@ -984,6 +934,12 @@ ${customNotes ? `คำแนะนำเพิ่มเติมจากผู
         takeProfit = '',
         notes = ''
       } = req.body;
+
+      if (!customApiKey || !customApiKey.trim()) {
+        return res.status(400).json({
+          error: 'กรุณาระบุ Google Gemini API Key ส่วนตัวของคุณในช่องตั้งค่าก่อนวิเคราะห์ออเดอร์ (ระบบใช้ API Key และเครดิตของบัญชีคุณเอง)'
+        });
+      }
 
       if (!chartImage) {
         return res.status(400).json({ error: 'กรุณาแนบรูปภาพกราฟออเดอร์ที่ต้องการวิเคราะห์' });
@@ -1075,33 +1031,15 @@ ${customNotes ? `คำแนะนำเพิ่มเติมจากผู
         const responseText = result.text;
         if (responseText) {
           auditData = JSON.parse(responseText);
+        } else {
+          throw new Error('ไม่ได้รับผลประเมินออเดอร์กลับมาจาก Google Gemini');
         }
       } catch (geminiErr: any) {
-        console.warn('Gemini API Position Audit fallback triggered:', geminiErr?.message || geminiErr);
-
-        const isBuy = orderType === 'BUY';
-        auditData = {
-          symbol: symbol || 'XAU/USD',
-          recommendation: 'PARTIAL_CLOSE',
-          recommendationTitle: isBuy 
-            ? 'แนะนำขยับ SL บังทุน (Breakeven) และแบ่งปิดทำกำไร 50%' 
-            : 'แนะนำขยับ SL บังทุน (Breakeven) และล็อคกำไรบางส่วน',
-          recommendationSummary: `จากการประเมินกราฟ ${timeframe} สำหรับฝั่ง ${orderType}: ราคาได้เคลื่อนที่เข้าใกล้โซนแนวต้าน/แนวรับสำคัญ แนะนำให้ลดความเสี่ยงด้วยการขยับ Stop Loss มาบังทุนทันที`,
-          qualityScore: 82,
-          structureAnalysis: `โครงสร้างราคาบนกราฟ ${timeframe} แสดงโมเมนตัมตามทิศทาง ${orderType} ชัดเจน อย่างไรก็ตามเริ่มเกิดการสร้างแท่งเทียนชะลอตัว (Consolidation) บริเวณแนวสำคัญ ควรระวังการย่อตัวเทสสวิงเดิม`,
-          cautionPoints: [
-            `ราคาเคลื่อนที่เข้าใกล้โซน Key Resistance / Supply Zone ใน Timeframe ใหญ่`,
-            `เริ่มเกิดสัญญาณแรงขายแทรก (Rejection Wick) บนแท่งเทียนล่าสุด`,
-            `ควรระมัดระวังความผันผวนช่วงรอยต่อรอบตลาด (Session Change)`,
-            `หากราคาย้อนกลับมาหลุดจุดคุ้มทุน ควรออกจากออเดอร์ทันทีเพื่อรักษาเงินทุน`
-          ],
-          managementAdvice: `1. ขยับ Stop Loss มาตั้งที่ราคาเข้า (${entryPrice || 'Entry Price'}) ล็อคความเสี่ยงเป็น 0%\n2. ปิดทำกำไรบางส่วน (Partial Close 30%-50%) เพื่อเก็บกระแสเงินสด\n3. ปล่อยออเดอร์ส่วนที่เหลือรันไปยังเป้าหมาย ถ้าราคาทำ High/Low ใหม่`,
-          targetAdjustment: {
-            suggestedSl: entryPrice ? entryPrice : 'ราคาจุดเข้าออเดอร์ (Breakeven)',
-            suggestedTp: takeProfit ? takeProfit : 'โซนสวิงถัดไป',
-            trailingStopPips: '300 - 500 จุด'
-          }
-        };
+        console.error('Gemini API Position Audit failed for user key:', geminiErr?.message || geminiErr);
+        const msg = geminiErr?.message || String(geminiErr);
+        return res.status(400).json({
+          error: `เกิดข้อผิดพลาดในการวิเคราะห์ด้วย Gemini API Key ของคุณ: ${msg} (กรุณาตรวจสอบว่า API Key ส่วนตัวของคุณถูกต้องและมีโควตาใน Google AI Studio)`
+        });
       }
 
       const finalAuditResult = {

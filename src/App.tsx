@@ -15,6 +15,7 @@ import { AuthModal } from './components/AuthModal';
 import { AdminDashboardModal } from './components/AdminDashboardModal';
 import { EaStoreModal } from './components/EaStoreModal';
 import { PositionAuditModal } from './components/PositionAuditModal';
+import { GeminiApiKeyCard } from './components/GeminiApiKeyCard';
 import { Sparkles, Play, RefreshCw, AlertCircle, ShieldCheck, ArrowRight, CheckCircle2, Crown, LayoutDashboard, Bot, BarChart2 } from 'lucide-react';
 
 export default function App() {
@@ -222,15 +223,17 @@ export default function App() {
 
   // Primary AI Analysis Execution Handler
   const handleRunAnalysis = async () => {
-    if (!images.h4Image && !images.h1Image && !images.m15Image) {
-      setErrorMsg('กรุณาอัปโหลดรูปภาพกราฟอย่างน้อย 1 Timeframe (แนะนำครบ H4, H1, M15 เพื่อความแม่นยำ)');
+    if (!user.apiKey || !user.apiKey.trim()) {
+      setErrorMsg('กรุณากรอก Google Gemini API Key ส่วนตัวของคุณในช่องตั้งค่าด้านล่างก่อนเริ่มวิเคราะห์ (ไม่มีระบบโควตาส่วนกลาง - ใช้ API Key และเครดิตของบัญชีคุณเอง)');
+      const keyElement = document.getElementById('gemini-key-section');
+      if (keyElement) {
+        keyElement.scrollIntoView({ behavior: 'smooth' });
+      }
       return;
     }
 
-    // Quota Limit Enforcement for FREE tier
-    if (user.plan === 'FREE' && user.dailyAnalysisCount >= user.dailyQuotaLimit) {
-      setErrorMsg('คุณใช้งานโควตาฟรีประจำวันครบ 3/3 ครั้งแล้ว สมัครสมาชิกระดับ Pro VIP เพื่อวิเคราะห์กราฟได้ไม่จำกัดจำนวนครั้ง!');
-      setIsSubscriptionOpen(true);
+    if (!images.h4Image && !images.h1Image && !images.m15Image) {
+      setErrorMsg('กรุณาอัปโหลดรูปภาพกราฟอย่างน้อย 1 Timeframe (แนะนำครบ H4, H1, M15 เพื่อความแม่นยำ)');
       return;
     }
 
@@ -363,6 +366,12 @@ export default function App() {
           images={images}
           onChangeImages={setImages}
           onSelectPreset={handleSelectPreset}
+        />
+
+        {/* Google Gemini Personal API Key Setting Card */}
+        <GeminiApiKeyCard
+          apiKey={user.apiKey || ''}
+          onSaveApiKey={handleUpdateApiKey}
         />
 
         {/* Additional User Notes Input */}

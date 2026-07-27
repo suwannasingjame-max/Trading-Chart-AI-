@@ -75,6 +75,11 @@ export const PositionAuditModal: React.FC<PositionAuditModalProps> = ({
 
   const handleSubmitAudit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user?.apiKey || !user?.apiKey.trim()) {
+      setErrorMsg('กรุณาใส่ Google Gemini API Key ส่วนตัวของคุณในช่องตั้งค่าด้านล่างก่อนเริ่มประเมินออเดอร์ (ระบบใช้ API Key และเครดิตของคุณเอง)');
+      return;
+    }
+
     if (!chartImage) {
       setErrorMsg('กรุณาอัปโหลดหรือแนบรูปภาพกราฟออเดอร์ที่ต้องการวิเคราะห์');
       return;
