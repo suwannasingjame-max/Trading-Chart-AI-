@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { PositionAuditResult, PositionAuditRequest } from '../types';
+import { PositionAuditResult, PositionAuditRequest, UserProfile } from '../types';
 import {
   X,
   Upload,
@@ -27,11 +27,13 @@ import {
 interface PositionAuditModalProps {
   isOpen: boolean;
   onClose: () => void;
+  user?: UserProfile;
 }
 
 export const PositionAuditModal: React.FC<PositionAuditModalProps> = ({
   isOpen,
   onClose,
+  user,
 }) => {
   const [chartImage, setChartImage] = useState<string | null>(null);
   const [orderType, setOrderType] = useState<'BUY' | 'SELL'>('BUY');
@@ -97,7 +99,10 @@ export const PositionAuditModal: React.FC<PositionAuditModalProps> = ({
       const response = await fetch('/api/audit-position', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          ...payload,
+          customApiKey: user?.apiKey,
+        }),
       });
 
       if (!response.ok) {

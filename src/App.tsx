@@ -88,15 +88,25 @@ export default function App() {
   };
 
   // Login Handler
-  const handleLoginSuccess = (userData: { id?: string; name: string; email: string; plan?: SubscriptionPlanType }) => {
+  const handleLoginSuccess = (userData: { id?: string; name: string; email: string; plan?: SubscriptionPlanType; apiKey?: string }) => {
     const updated: UserProfile = {
       ...user,
       id: userData.id || user.id || 'usr_' + Date.now(),
       name: userData.name,
       email: userData.email,
       plan: userData.plan || 'FREE',
+      apiKey: userData.apiKey !== undefined ? userData.apiKey : user.apiKey,
       dailyQuotaLimit: 9999,
       isLoggedIn: true,
+    };
+    saveUser(updated);
+  };
+
+  // Update API Key handler
+  const handleUpdateApiKey = (newKey: string) => {
+    const updated: UserProfile = {
+      ...user,
+      apiKey: newKey,
     };
     saveUser(updated);
   };
@@ -241,6 +251,7 @@ export default function App() {
           m15Image: images.m15Image,
           strategy,
           customNotes,
+          customApiKey: user.apiKey,
         }),
       });
 
@@ -487,6 +498,7 @@ export default function App() {
         onClose={() => setIsAuthOpen(false)}
         user={user}
         onLoginSuccess={handleLoginSuccess}
+        onUpdateApiKey={handleUpdateApiKey}
         onLogout={handleLogout}
         isMandatory={false}
       />
@@ -509,6 +521,7 @@ export default function App() {
       <PositionAuditModal
         isOpen={isPositionAuditOpen}
         onClose={() => setIsPositionAuditOpen(false)}
+        user={user}
       />
     </div>
   );

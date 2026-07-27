@@ -105,6 +105,7 @@ export interface UserProfile {
   id: string;
   name: string;
   email: string;
+  apiKey?: string; // Personal Gemini API Key
   plan: SubscriptionPlanType;
   dailyAnalysisCount: number;
   dailyQuotaLimit: number; // 3 for FREE, Infinity/999 for PRO

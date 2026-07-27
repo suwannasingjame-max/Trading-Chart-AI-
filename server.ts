@@ -618,10 +618,10 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
   });
 
   // Helper to get Gemini client
-  const getAi = () => {
-    const apiKey = process.env.GEMINI_API_KEY;
+  const getAi = (userApiKey?: string) => {
+    const apiKey = (userApiKey && userApiKey.trim()) || process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      throw new Error('GEMINI_API_KEY environment variable is missing.');
+      throw new Error('ไม่พบ GEMINI_API_KEY กรุณาระบุ API Key ในการตั้งค่าหรือใน Environment Variables');
     }
     return new GoogleGenAI({
       apiKey,
@@ -641,13 +641,13 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
   // Multi-Timeframe Chart Analysis Endpoint
   app.post('/api/analyze', async (req, res) => {
     try {
-      const { h4Image, h1Image, m15Image, strategy = 'SMC', customNotes = '' } = req.body;
+      const { h4Image, h1Image, m15Image, strategy = 'SMC', customNotes = '', customApiKey } = req.body;
 
       if (!h4Image && !h1Image && !m15Image) {
         return res.status(400).json({ error: 'กรุณาอัปโหลดรูปภาพกราฟอย่างน้อย 1 Timeframe (แนะนำอัปโหลดครบ H4, H1, M15)' });
       }
 
-      const ai = getAi();
+      const ai = getAi(customApiKey);
 
       // Strategy specific system prompts & instructions in Thai
       const strategyGuide: Record<string, string> = {
@@ -855,7 +855,7 @@ ${customNotes ? `คำแนะนำเพิ่มเติมจากผู
       let parsedData: any = null;
 
       try {
-        const ai = getAi();
+        const ai = getAi(customApiKey);
         const result = await ai.models.generateContent({
           model: 'gemini-3.6-flash',
           contents: { parts },
@@ -1061,7 +1061,7 @@ ${customNotes ? `คำแนะนำเพิ่มเติมจากผู
       let auditData: any = null;
 
       try {
-        const ai = getAi();
+        const ai = getAi(req.body.customApiKey);
         const result = await ai.models.generateContent({
           model: 'gemini-3.6-flash',
           contents: { parts },
