@@ -88,15 +88,74 @@ export default function App() {
   };
 
   // Login Handler
-  const handleLoginSuccess = (name: string, email: string) => {
+  const handleLoginSuccess = (userData: { id?: string; name: string; email: string; plan?: SubscriptionPlanType }) => {
     const updated: UserProfile = {
       ...user,
-      name,
-      email,
+      id: userData.id || user.id || 'usr_' + Date.now(),
+      name: userData.name,
+      email: userData.email,
+      plan: userData.plan || 'FREE',
+      dailyQuotaLimit: 9999,
       isLoggedIn: true,
     };
     saveUser(updated);
   };
+
+  // Sync user profile status from backend (Realtime Pro VIP Sync)
+  const syncUserFromBackend = async (targetEmail?: string) => {
+    const checkEmail = targetEmail || user.email;
+    if (!checkEmail || checkEmail.includes('guest@trader.ai')) return;
+    try {
+      const res = await fetch(`/api/auth/me?email=${encodeURIComponent(checkEmail)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.user) {
+          setUser((prev) => {
+            if (
+              prev.plan !== data.user.plan ||
+              prev.name !== data.user.name ||
+              prev.id !== data.user.id
+            ) {
+              const updated: UserProfile = {
+                ...prev,
+                id: data.user.id || prev.id,
+                name: data.user.name || prev.name,
+                email: data.user.email || prev.email,
+                plan: data.user.plan || prev.plan,
+                dailyQuotaLimit: 9999,
+                isLoggedIn: true,
+              };
+              try {
+                localStorage.setItem('trading_chart_ai_user', JSON.stringify(updated));
+              } catch (e) {}
+              return updated;
+            }
+            return prev;
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Failed to sync user from backend:', e);
+    }
+  };
+
+  // Periodically sync user status when logged in
+  useEffect(() => {
+    if (user.isLoggedIn && user.email) {
+      syncUserFromBackend(user.email);
+      const interval = setInterval(() => {
+        syncUserFromBackend(user.email);
+      }, 4000);
+      return () => clearInterval(interval);
+    }
+  }, [user.isLoggedIn, user.email]);
+
+  // Sync when admin modal closes
+  useEffect(() => {
+    if (!isAdminOpen && user.isLoggedIn && user.email) {
+      syncUserFromBackend(user.email);
+    }
+  }, [isAdminOpen]);
 
   // Logout Handler
   const handleLogout = () => {

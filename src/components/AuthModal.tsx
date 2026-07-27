@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { UserProfile } from '../types';
-import { User, LogIn, UserPlus, X, Mail, Lock, ShieldCheck } from 'lucide-react';
+import { UserProfile, SubscriptionPlanType } from '../types';
+import { User, LogIn, UserPlus, X, Mail, Lock, ShieldCheck, Loader2 } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   user: UserProfile;
-  onLoginSuccess: (name: string, email: string) => void;
+  onLoginSuccess: (userData: { id?: string; name: string; email: string; plan?: SubscriptionPlanType }) => void;
   onLogout: () => void;
   isMandatory?: boolean;
 }
@@ -35,6 +35,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
+    if (isRegister && password.length < 4) {
+      setErrorMsg('กรุณาตั้งรหัสผ่านอย่างน้อย 4 ตัวอักษร');
+      return;
+    }
+
     setLoading(true);
     setErrorMsg(null);
 
@@ -50,21 +55,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'การดำเนินการล้มเหลว กรุณาลองใหม่อีกครั้ง');
-      }
-
-      onLoginSuccess(data.user.name, data.user.email);
-      onClose();
-    } catch (err: any) {
-      console.error('Auth error:', err);
-      // Fallback for seamless demo if backend API offline
-      if (email) {
-        const finalName = name || email.split('@')[0] || 'Trader';
-        onLoginSuccess(finalName, email);
-        onClose();
+        setErrorMsg(data.error || 'การดำเนินการล้มเหลว กรุณาตรวจสอบข้อมูลและลองใหม่อีกครั้ง');
         return;
       }
-      setErrorMsg(err.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+
+      if (data.user) {
+        onLoginSuccess({
+          id: data.user.id,
+          name: data.user.name,
+          email: data.user.email,
+          plan: data.user.plan,
+        });
+        onClose();
+      }
+    } catch (err: any) {
+      console.error('Auth error:', err);
+      setErrorMsg('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง');
     } finally {
       setLoading(false);
     }
@@ -197,8 +203,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             {/* Quick Demo Login Option */}
             <div className="pt-3 border-t border-slate-800 text-center">
               <button
+                type="button"
                 onClick={() => {
-                  onLoginSuccess('Trader Pro', 'demo.trader@example.com');
+                  onLoginSuccess({
+                    id: 'usr_demo',
+                    name: 'Trader Pro (Demo)',
+                    email: 'demo.trader@example.com',
+                    plan: 'PRO_MONTHLY',
+                  });
                   onClose();
                 }}
                 className="text-xs text-emerald-400 font-semibold hover:underline"

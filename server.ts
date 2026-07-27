@@ -206,35 +206,49 @@ async function startServer() {
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const existing = registeredUsersDB.find((u) => u.email.toLowerCase() === cleanEmail);
+    const cleanName = (name || cleanEmail.split('@')[0] || 'Trader').trim();
 
-    if (existing) {
-      return res.status(400).json({ error: 'อีเมลนี้ถูกลงทะเบียนไว้ในระบบแล้ว กรุณาเข้าสู่ระบบ' });
+    if (password.length < 4) {
+      return res.status(400).json({ error: 'กรุณาตั้งรหัสผ่านอย่างน้อย 4 ตัวอักษร' });
     }
 
+    const existing = registeredUsersDB.find((u) => u.email.toLowerCase() === cleanEmail);
+    if (existing) {
+      return res.status(400).json({ error: 'อีเมลนี้ถูกลงทะเบียนไว้ในระบบแล้ว กรุณาสลับไปที่เมนูเข้าสู่ระบบ' });
+    }
+
+    // Check if pre-granted VIP in adminUsers
+    const preGranted = adminUsers.find((u) => u.email.toLowerCase() === cleanEmail);
+    const assignedPlan = preGranted?.plan || 'FREE';
+
     const newUser = {
-      id: 'usr_' + Date.now(),
-      name: name || cleanEmail.split('@')[0] || 'Trader',
+      id: preGranted?.id || 'usr_' + Date.now(),
+      name: cleanName,
       email: cleanEmail,
-      passwordHash: password, // In production, hash with bcrypt
+      passwordHash: password,
       joinedAt: new Date().toISOString(),
-      plan: 'FREE',
+      plan: assignedPlan,
     };
 
     registeredUsersDB.push(newUser);
 
-    // Also register in admin backoffice
-    adminUsers.unshift({
-      id: newUser.id,
-      name: newUser.name,
-      email: newUser.email,
-      plan: 'FREE',
-      dailyAnalysisCount: 0,
-      dailyQuotaLimit: 9999,
-      joinedAt: newUser.joinedAt,
-      lastActive: new Date().toISOString(),
-      isLoggedIn: true,
-    });
+    if (preGranted) {
+      preGranted.name = cleanName;
+      preGranted.isLoggedIn = true;
+      preGranted.lastActive = new Date().toISOString();
+    } else {
+      adminUsers.unshift({
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        plan: assignedPlan,
+        dailyAnalysisCount: 0,
+        dailyQuotaLimit: 9999,
+        joinedAt: newUser.joinedAt,
+        lastActive: new Date().toISOString(),
+        isLoggedIn: true,
+      });
+    }
 
     res.json({
       success: true,
@@ -242,7 +256,7 @@ async function startServer() {
         id: newUser.id,
         name: newUser.name,
         email: newUser.email,
-        plan: newUser.plan,
+        plan: assignedPlan,
         isLoggedIn: true,
       },
     });
@@ -260,37 +274,40 @@ async function startServer() {
     const foundUser = registeredUsersDB.find((u) => u.email.toLowerCase() === cleanEmail);
 
     if (!foundUser) {
-      // Auto register or check demo
-      if (cleanEmail === 'demo.trader@example.com' || password === 'demo1234' || password === '123456') {
+      // Demo trader fallback
+      if (cleanEmail === 'demo.trader@example.com' && (password === 'demo1234' || password === '123456')) {
         const demoUser = {
-          id: 'usr_demo_' + Date.now(),
-          name: email.split('@')[0] || 'Trader Pro',
+          id: 'usr_demo',
+          name: 'Trader Pro',
           email: cleanEmail,
-          plan: 'FREE',
+          plan: 'PRO_MONTHLY',
           isLoggedIn: true,
         };
         return res.json({ success: true, user: demoUser });
       }
 
-      return res.status(400).json({ error: 'ไม่พบบัญชีผู้ใช้นี้ในระบบ กรุณาสมัครสมาชิกใหม่' });
+      return res.status(400).json({ error: 'ไม่พบบัญชีผู้ใช้สำหรับอีเมลนี้ กรุณาสมัครสมาชิกใหม่ก่อนเข้าใช้งาน' });
     }
 
     if (foundUser.passwordHash !== password) {
-      return res.status(400).json({ error: 'รหัสผ่านไม่ถูกต้อง! กรุณาลองใหม่อีกครั้ง' });
+      return res.status(400).json({ error: 'รหัสผ่านไม่ถูกต้อง! กรุณาตรวจสอบและลองใหม่อีกครั้ง' });
     }
 
-    // Update lastActive in adminUsers
+    // Get latest status from adminUsers
     const nowIso = new Date().toISOString();
     const adminIdx = adminUsers.findIndex((u) => u.email.toLowerCase() === cleanEmail);
+    let userPlan = foundUser.plan || 'FREE';
+
     if (adminIdx >= 0) {
       adminUsers[adminIdx].lastActive = nowIso;
       adminUsers[adminIdx].isLoggedIn = true;
+      userPlan = adminUsers[adminIdx].plan || userPlan;
     } else {
       adminUsers.unshift({
         id: foundUser.id,
         name: foundUser.name,
         email: foundUser.email,
-        plan: foundUser.plan || 'FREE',
+        plan: userPlan,
         dailyAnalysisCount: 0,
         dailyQuotaLimit: 9999,
         joinedAt: foundUser.joinedAt || nowIso,
@@ -305,10 +322,39 @@ async function startServer() {
         id: foundUser.id,
         name: foundUser.name,
         email: foundUser.email,
-        plan: foundUser.plan,
+        plan: userPlan,
         isLoggedIn: true,
       },
     });
+  });
+
+  // Auth: Check Current User Info / Status Endpoint
+  app.get('/api/auth/me', (req, res) => {
+    const email = (req.query.email || '').toString().trim().toLowerCase();
+    if (!email) {
+      return res.status(400).json({ error: 'Missing email parameter' });
+    }
+
+    const adminU = adminUsers.find((u) => u.email.toLowerCase() === email);
+    const dbU = registeredUsersDB.find((u) => u.email.toLowerCase() === email);
+
+    if (adminU || dbU) {
+      const plan = adminU?.plan || dbU?.plan || 'FREE';
+      const name = adminU?.name || dbU?.name || email.split('@')[0];
+      const id = adminU?.id || dbU?.id || 'usr_' + Date.now();
+      return res.json({
+        success: true,
+        user: {
+          id,
+          name,
+          email,
+          plan,
+          isLoggedIn: true,
+        },
+      });
+    }
+
+    res.status(404).json({ error: 'User not found' });
   });
 
   // User Sync & Activity API
