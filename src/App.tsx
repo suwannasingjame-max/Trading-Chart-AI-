@@ -483,12 +483,12 @@ export default function App() {
       />
 
       <AuthModal
-        isOpen={!user.isLoggedIn || isAuthOpen}
+        isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
         user={user}
         onLoginSuccess={handleLoginSuccess}
         onLogout={handleLogout}
-        isMandatory={!user.isLoggedIn}
+        isMandatory={false}
       />
 
       <AdminDashboardModal
