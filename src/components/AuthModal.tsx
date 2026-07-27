@@ -59,13 +59,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({
+          name: name ? name.trim() : '',
+          email: email ? email.trim() : '',
+          password
+        }),
       });
 
-      const data = await res.json();
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch (parseErr) {
+        data = { error: `เซิร์ฟเวอร์ตอบกลับรหัสสถานะ ${res.status}` };
+      }
 
       if (!res.ok || !data.success) {
-        setErrorMsg(data.error || 'การดำเนินการล้มเหลว กรุณาตรวจสอบข้อมูลและลองใหม่อีกครั้ง');
+        setErrorMsg(data.error || 'การสมัครสมาชิกหรือเข้าสู่ระบบล้มเหลว กรุณาตรวจสอบข้อมูลและลองใหม่อีกครั้ง');
         return;
       }
 
@@ -81,7 +90,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
     } catch (err: any) {
       console.error('Auth error:', err);
-      setErrorMsg('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง');
+      setErrorMsg(err?.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง');
     } finally {
       setLoading(false);
     }

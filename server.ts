@@ -198,133 +198,144 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
   // Auth: Register Endpoint
   app.post('/api/auth/register', (req, res) => {
-    const { name, email, password } = req.body;
+    try {
+      const { name, email, password } = req.body || {};
 
-    if (!email || !password) {
-      return res.status(400).json({ error: 'กรุณากรอกอีเมลและรหัสผ่านให้ครบถ้วน' });
-    }
+      if (!email || !password) {
+        return res.status(400).json({ error: 'กรุณากรอกอีเมลและรหัสผ่านให้ครบถ้วน' });
+      }
 
-    const cleanEmail = email.trim().toLowerCase();
-    const cleanName = (name || cleanEmail.split('@')[0] || 'Trader').trim();
+      const cleanEmail = String(email).trim().toLowerCase();
+      const cleanName = (name || cleanEmail.split('@')[0] || 'Trader').toString().trim();
 
-    if (password.length < 4) {
-      return res.status(400).json({ error: 'กรุณาตั้งรหัสผ่านอย่างน้อย 4 ตัวอักษร' });
-    }
+      if (String(password).length < 4) {
+        return res.status(400).json({ error: 'กรุณาตั้งรหัสผ่านอย่างน้อย 4 ตัวอักษร' });
+      }
 
-    const existing = registeredUsersDB.find((u) => u.email.toLowerCase() === cleanEmail);
-    if (existing) {
-      return res.status(400).json({ error: 'อีเมลนี้ถูกลงทะเบียนไว้ในระบบแล้ว กรุณาสลับไปที่เมนูเข้าสู่ระบบ' });
-    }
+      const existing = registeredUsersDB.find((u) => u.email.toLowerCase() === cleanEmail);
+      if (existing) {
+        return res.status(400).json({ error: 'อีเมลนี้ถูกลงทะเบียนไว้ในระบบแล้ว กรุณาสลับไปที่เมนูเข้าสู่ระบบ' });
+      }
 
-    // Check if pre-granted VIP in adminUsers
-    const preGranted = adminUsers.find((u) => u.email.toLowerCase() === cleanEmail);
-    const assignedPlan = preGranted?.plan || 'FREE';
+      // Check if pre-granted VIP in adminUsers
+      const preGranted = adminUsers.find((u) => u.email.toLowerCase() === cleanEmail);
+      const assignedPlan = preGranted?.plan || 'FREE';
 
-    const newUser = {
-      id: preGranted?.id || 'usr_' + Date.now(),
-      name: cleanName,
-      email: cleanEmail,
-      passwordHash: password,
-      joinedAt: new Date().toISOString(),
-      plan: assignedPlan,
-    };
-
-    registeredUsersDB.push(newUser);
-
-    if (preGranted) {
-      preGranted.name = cleanName;
-      preGranted.isLoggedIn = true;
-      preGranted.lastActive = new Date().toISOString();
-    } else {
-      adminUsers.unshift({
-        id: newUser.id,
-        name: newUser.name,
-        email: newUser.email,
+      const newUser = {
+        id: preGranted?.id || 'usr_' + Date.now(),
+        name: cleanName,
+        email: cleanEmail,
+        passwordHash: String(password),
+        joinedAt: new Date().toISOString(),
         plan: assignedPlan,
-        dailyAnalysisCount: 0,
-        dailyQuotaLimit: 9999,
-        joinedAt: newUser.joinedAt,
-        lastActive: new Date().toISOString(),
-        isLoggedIn: true,
+      };
+
+      registeredUsersDB.push(newUser);
+
+      if (preGranted) {
+        preGranted.name = cleanName;
+        preGranted.isLoggedIn = true;
+        preGranted.lastActive = new Date().toISOString();
+      } else {
+        adminUsers.unshift({
+          id: newUser.id,
+          name: newUser.name,
+          email: newUser.email,
+          plan: assignedPlan,
+          dailyAnalysisCount: 0,
+          dailyQuotaLimit: 9999,
+          joinedAt: newUser.joinedAt,
+          lastActive: new Date().toISOString(),
+          isLoggedIn: true,
+        });
+      }
+
+      return res.json({
+        success: true,
+        user: {
+          id: newUser.id,
+          name: newUser.name,
+          email: newUser.email,
+          plan: assignedPlan,
+          isLoggedIn: true,
+        },
       });
+    } catch (err: any) {
+      console.error('Error in /api/auth/register:', err);
+      return res.status(500).json({ error: 'เกิดข้อผิดพลาดที่เซิร์ฟเวอร์ระหว่างลงทะเบียน: ' + (err.message || 'Server error') });
     }
-
-    res.json({
-      success: true,
-      user: {
-        id: newUser.id,
-        name: newUser.name,
-        email: newUser.email,
-        plan: assignedPlan,
-        isLoggedIn: true,
-      },
-    });
   });
 
   // Auth: Login Endpoint
   app.post('/api/auth/login', (req, res) => {
-    const { email, password } = req.body;
+    try {
+      const { email, password } = req.body || {};
 
-    if (!email || !password) {
-      return res.status(400).json({ error: 'กรุณากรอกอีเมลและรหัสผ่านให้ครบถ้วน' });
-    }
-
-    const cleanEmail = email.trim().toLowerCase();
-    const foundUser = registeredUsersDB.find((u) => u.email.toLowerCase() === cleanEmail);
-
-    if (!foundUser) {
-      // Demo trader fallback
-      if (cleanEmail === 'demo.trader@example.com' && (password === 'demo1234' || password === '123456')) {
-        const demoUser = {
-          id: 'usr_demo',
-          name: 'Trader Pro',
-          email: cleanEmail,
-          plan: 'PRO_MONTHLY',
-          isLoggedIn: true,
-        };
-        return res.json({ success: true, user: demoUser });
+      if (!email || !password) {
+        return res.status(400).json({ error: 'กรุณากรอกอีเมลและรหัสผ่านให้ครบถ้วน' });
       }
 
-      return res.status(400).json({ error: 'ไม่พบบัญชีผู้ใช้สำหรับอีเมลนี้ กรุณาสมัครสมาชิกใหม่ก่อนเข้าใช้งาน' });
-    }
+      const cleanEmail = String(email).trim().toLowerCase();
+      const passStr = String(password);
+      const foundUser = registeredUsersDB.find((u) => u.email.toLowerCase() === cleanEmail);
 
-    if (foundUser.passwordHash !== password) {
-      return res.status(400).json({ error: 'รหัสผ่านไม่ถูกต้อง! กรุณาตรวจสอบและลองใหม่อีกครั้ง' });
-    }
+      if (!foundUser) {
+        // Demo trader fallback
+        if (cleanEmail === 'demo.trader@example.com' && (passStr === 'demo1234' || passStr === '123456')) {
+          const demoUser = {
+            id: 'usr_demo',
+            name: 'Trader Pro',
+            email: cleanEmail,
+            plan: 'PRO_MONTHLY',
+            isLoggedIn: true,
+          };
+          return res.json({ success: true, user: demoUser });
+        }
 
-    // Get latest status from adminUsers
-    const nowIso = new Date().toISOString();
-    const adminIdx = adminUsers.findIndex((u) => u.email.toLowerCase() === cleanEmail);
-    let userPlan = foundUser.plan || 'FREE';
+        return res.status(400).json({ error: 'ไม่พบบัญชีผู้ใช้สำหรับอีเมลนี้ กรุณาสมัครสมาชิกใหม่ก่อนเข้าใช้งาน' });
+      }
 
-    if (adminIdx >= 0) {
-      adminUsers[adminIdx].lastActive = nowIso;
-      adminUsers[adminIdx].isLoggedIn = true;
-      userPlan = adminUsers[adminIdx].plan || userPlan;
-    } else {
-      adminUsers.unshift({
-        id: foundUser.id,
-        name: foundUser.name,
-        email: foundUser.email,
-        plan: userPlan,
-        dailyAnalysisCount: 0,
-        dailyQuotaLimit: 9999,
-        joinedAt: foundUser.joinedAt || nowIso,
-        lastActive: nowIso,
-        isLoggedIn: true,
+      if (foundUser.passwordHash !== passStr) {
+        return res.status(400).json({ error: 'รหัสผ่านไม่ถูกต้อง! กรุณาตรวจสอบและลองใหม่อีกครั้ง' });
+      }
+
+      // Get latest status from adminUsers
+      const nowIso = new Date().toISOString();
+      const adminIdx = adminUsers.findIndex((u) => u.email.toLowerCase() === cleanEmail);
+      let userPlan = foundUser.plan || 'FREE';
+
+      if (adminIdx >= 0) {
+        adminUsers[adminIdx].lastActive = nowIso;
+        adminUsers[adminIdx].isLoggedIn = true;
+        userPlan = adminUsers[adminIdx].plan || userPlan;
+      } else {
+        adminUsers.unshift({
+          id: foundUser.id,
+          name: foundUser.name,
+          email: foundUser.email,
+          plan: userPlan,
+          dailyAnalysisCount: 0,
+          dailyQuotaLimit: 9999,
+          joinedAt: foundUser.joinedAt || nowIso,
+          lastActive: nowIso,
+          isLoggedIn: true,
+        });
+      }
+
+      return res.json({
+        success: true,
+        user: {
+          id: foundUser.id,
+          name: foundUser.name,
+          email: foundUser.email,
+          plan: userPlan,
+          isLoggedIn: true,
+        },
       });
+    } catch (err: any) {
+      console.error('Error in /api/auth/login:', err);
+      return res.status(500).json({ error: 'เกิดข้อผิดพลาดที่เซิร์ฟเวอร์ระหว่างเข้าสู่ระบบ: ' + (err.message || 'Server error') });
     }
-
-    res.json({
-      success: true,
-      user: {
-        id: foundUser.id,
-        name: foundUser.name,
-        email: foundUser.email,
-        plan: userPlan,
-        isLoggedIn: true,
-      },
-    });
   });
 
   // Auth: Check Current User Info / Status Endpoint
