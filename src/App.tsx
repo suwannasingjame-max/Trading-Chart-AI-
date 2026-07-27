@@ -10,13 +10,12 @@ import { SummaryTable } from './components/SummaryTable';
 import { PositionSizeCalculator } from './components/PositionSizeCalculator';
 import { AnalysisHistoryModal } from './components/AnalysisHistoryModal';
 import { HelpModal } from './components/HelpModal';
-import { SubscriptionModal } from './components/SubscriptionModal';
 import { AuthModal } from './components/AuthModal';
 import { AdminDashboardModal } from './components/AdminDashboardModal';
 import { EaStoreModal } from './components/EaStoreModal';
 import { PositionAuditModal } from './components/PositionAuditModal';
 import { GeminiApiKeyCard } from './components/GeminiApiKeyCard';
-import { Sparkles, Play, RefreshCw, AlertCircle, ShieldCheck, ArrowRight, CheckCircle2, Crown, LayoutDashboard, Bot, BarChart2 } from 'lucide-react';
+import { Sparkles, Play, RefreshCw, AlertCircle, ShieldCheck, ArrowRight, CheckCircle2, LayoutDashboard, Bot, BarChart2 } from 'lucide-react';
 
 export default function App() {
   const [strategy, setStrategy] = useState<StrategyType>('SMC');
@@ -36,7 +35,6 @@ export default function App() {
 
   const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
   const [isHelpOpen, setIsHelpOpen] = useState<boolean>(false);
-  const [isSubscriptionOpen, setIsSubscriptionOpen] = useState<boolean>(false);
   const [isAuthOpen, setIsAuthOpen] = useState<boolean>(false);
   const [isAdminOpen, setIsAdminOpen] = useState<boolean>(false);
   const [isEaStoreOpen, setIsEaStoreOpen] = useState<boolean>(false);
@@ -47,11 +45,7 @@ export default function App() {
     try {
       const saved = localStorage.getItem('trading_chart_ai_user');
       if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.plan === 'FREE') {
-          parsed.dailyQuotaLimit = 9999;
-        }
-        return parsed;
+        return JSON.parse(saved);
       }
     } catch (e) {
       console.error('Failed to parse user profile from localStorage', e);
@@ -75,17 +69,6 @@ export default function App() {
     } catch (e) {
       console.error('Failed to save user profile to localStorage', e);
     }
-  };
-
-  // Upgrade Plan Handler
-  const handleUpgradePlan = (newPlan: SubscriptionPlanType) => {
-    const updated: UserProfile = {
-      ...user,
-      plan: newPlan,
-      dailyQuotaLimit: 9999,
-      subscriptionExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-    };
-    saveUser(updated);
   };
 
   // Login Handler
@@ -340,13 +323,6 @@ export default function App() {
               <span>วิเคราะห์ออเดอร์ที่เข้าแล้ว</span>
             </button>
             <button
-              onClick={() => setIsSubscriptionOpen(true)}
-              className="text-xs font-bold px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-emerald-500 hover:from-amber-400 hover:to-emerald-400 text-slate-950 shadow-md flex items-center gap-1.5 transition"
-            >
-              <Crown className="w-3.5 h-3.5 fill-slate-950" />
-              <span>{user.plan === 'FREE' ? 'อัปเกรด Pro VIP' : 'แผนสมาชิกระดับ VIP'}</span>
-            </button>
-            <button
               onClick={() => setIsHelpOpen(true)}
               className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition shrink-0"
             >
@@ -395,14 +371,6 @@ export default function App() {
               <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
               <span>{errorMsg}</span>
             </div>
-            {user.plan === 'FREE' && (
-              <button
-                onClick={() => setIsSubscriptionOpen(true)}
-                className="px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shrink-0 shadow"
-              >
-                ดูแผนสมัครสมาชิก
-              </button>
-            )}
           </div>
         )}
 
@@ -426,11 +394,6 @@ export default function App() {
               <>
                 <Sparkles className="w-5 h-5" />
                 <span>วิเคราะห์กราฟ 3 TF ด้วย AI ทันที (Analyze Charts)</span>
-                {user.plan === 'FREE' && (
-                  <span className="text-[11px] font-normal px-2 py-0.5 rounded bg-slate-950/40 text-emerald-300 border border-emerald-500/30">
-                    โควตาฟรีเหลือ {Math.max(user.dailyQuotaLimit - user.dailyAnalysisCount, 0)}/{user.dailyQuotaLimit} ครั้ง
-                  </span>
-                )}
                 <ArrowRight className="w-5 h-5" />
               </>
             )}
@@ -464,10 +427,6 @@ export default function App() {
           Trading Chart AI Analyzer • AI Multi-Timeframe Trading System Analysis
         </p>
         <div className="flex items-center justify-center gap-4 text-[11px]">
-          <button onClick={() => setIsSubscriptionOpen(true)} className="hover:text-emerald-400 underline">
-            แผนสมัครสมาชิก
-          </button>
-          <span>•</span>
           <button onClick={() => setIsAuthOpen(true)} className="hover:text-emerald-400 underline">
             บัญชีผู้ใช้งาน
           </button>
@@ -495,13 +454,6 @@ export default function App() {
         onClose={() => setIsHelpOpen(false)}
       />
 
-      <SubscriptionModal
-        isOpen={isSubscriptionOpen}
-        onClose={() => setIsSubscriptionOpen(false)}
-        user={user}
-        onUpgradePlan={handleUpgradePlan}
-      />
-
       <AuthModal
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
@@ -521,10 +473,6 @@ export default function App() {
         isOpen={isEaStoreOpen}
         onClose={() => setIsEaStoreOpen(false)}
         user={user}
-        onUpgradePlan={() => {
-          setIsEaStoreOpen(false);
-          setIsSubscriptionOpen(true);
-        }}
       />
 
       <PositionAuditModal

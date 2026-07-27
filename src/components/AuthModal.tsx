@@ -126,7 +126,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <p className="text-xs text-slate-400">{user.email}</p>
               <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold border border-emerald-500/20">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                สถานะแผน: {user.plan === 'FREE' ? 'สมาชิกฟรี (Free)' : 'สมาชิก Pro VIP'}
+                สถานะ: สมาชิกผู้ใช้งานทั่วไป (Standard Account)
               </div>
             </div>
 
@@ -156,7 +156,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 />
               </div>
               <p className="text-[10px] text-slate-400 leading-relaxed">
-                ระบุ API Key ส่วนตัวเพื่อใช้โควตาของบัญชีคุณเองโดยตรง (จะถูกบันทึกไว้ในเบราว์เซอร์ของคุณอย่างปลอดภัย)
+                ระบุ API Key ส่วนตัวเพื่อใช้โควตาและเครดิตของบัญชีคุณเองโดยตรงในการวิเคราะห์กราฟ
               </p>
               <button
                 type="button"
@@ -197,10 +197,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 ยินดีต้อนรับสู่ระบบสมาชิก
               </div>
               <h3 className="text-lg font-extrabold text-slate-100">
-                {isRegister ? 'สมัครสมาชิกผู้ใช้งานใหม่' : 'เข้าสู่ระบบบัญชีผู้ใช้'}
+                {isRegister ? 'สมัครสมาชิกผู้ใช้งาน' : 'เข้าสู่ระบบบัญชีผู้ใช้'}
               </h3>
               <p className="text-xs text-slate-400">
-                เข้าสู่ระบบหรือสมัครสมาชิกเพื่อซิงก์สิทธิ์ Pro VIP และประวัติวิเคราะห์กราฟ
+                เข้าสู่ระบบหรือสมัครสมาชิกเพื่อบันทึกประวัติการวิเคราะห์กราฟและ Gemini API Key
               </p>
             </div>
 
@@ -310,9 +310,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 onClick={() => {
                   onLoginSuccess({
                     id: 'usr_demo',
-                    name: 'Trader Pro (Demo)',
+                    name: 'Trader Demo',
                     email: 'demo.trader@example.com',
-                    plan: 'PRO_MONTHLY',
+                    plan: 'FREE',
                     apiKey: customApiKey,
                   });
                   onClose();

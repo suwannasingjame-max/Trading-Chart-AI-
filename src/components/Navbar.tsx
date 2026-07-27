@@ -1,11 +1,10 @@
 import React from 'react';
 import { UserProfile } from '../types';
-import { TrendingUp, History, Sparkles, HelpCircle, Crown, User, BarChart2 } from 'lucide-react';
+import { TrendingUp, History, Sparkles, HelpCircle, User, BarChart2 } from 'lucide-react';
 
 interface NavbarProps {
   onOpenHistory: () => void;
   onOpenHelp: () => void;
-  onOpenSubscription: () => void;
   onOpenAuth: () => void;
   onOpenAdmin: () => void;
   onOpenEaStore: () => void;
@@ -17,7 +16,6 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({
   onOpenHistory,
   onOpenHelp,
-  onOpenSubscription,
   onOpenAuth,
   onOpenAdmin,
   onOpenEaStore,
@@ -25,8 +23,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   historyCount,
   user,
 }) => {
-  const isPro = user.plan !== 'FREE';
-
   return (
     <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 text-slate-100 px-4 lg:px-8 py-3.5 shadow-lg">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -56,7 +52,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Action Buttons & Membership Controls */}
+        {/* Action Buttons */}
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Active Order Audit Button */}
           <button
@@ -70,42 +66,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               NEW
             </span>
           </button>
-
-          {/* Membership Badge / Quota Tracker */}
-          <button
-            onClick={onOpenSubscription}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-sm border ${
-              isPro
-                ? 'bg-gradient-to-r from-amber-500/20 to-emerald-500/20 text-amber-300 border-amber-500/40 hover:border-amber-400'
-                : 'bg-slate-800 text-slate-300 border-slate-700/80 hover:bg-slate-750'
-            }`}
-            title="จัดการแผนสมาชิก"
-          >
-            <Crown className={`w-3.5 h-3.5 ${isPro ? 'text-amber-400 fill-amber-400/20' : 'text-slate-400'}`} />
-            <span>
-              {isPro ? (
-                'PRO VIP'
-              ) : (
-                <span className="flex items-center gap-1">
-                  <span>FREE</span>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20">
-                    ไม่จำกัด
-                  </span>
-                </span>
-              )}
-            </span>
-          </button>
-
-          {/* Upgrade Button if Free */}
-          {!isPro && (
-            <button
-              onClick={onOpenSubscription}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-extrabold text-xs transition shadow-md shadow-emerald-950/40"
-            >
-              <Crown className="w-3.5 h-3.5 fill-slate-950" />
-              <span>สมัครสมาชิก VIP</span>
-            </button>
-          )}
 
           {/* History Button */}
           <button
@@ -142,7 +102,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               {user.isLoggedIn ? user.name.charAt(0).toUpperCase() : <User className="w-3 h-3" />}
             </div>
             <span className="hidden md:inline font-semibold">
-              {user.isLoggedIn ? user.name : 'เข้าสู่ระบบ'}
+              {user.isLoggedIn ? user.name : 'เข้าสู่ระบบ / สมัครสมาชิก'}
             </span>
           </button>
         </div>
