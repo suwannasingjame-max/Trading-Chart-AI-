@@ -1,0 +1,6 @@
+{
+  "name": "Trading Chart AI Analyzer",
+  "description": "ระบบวิเคราะห์กราฟเทรด 3 Timeframe (H4, H1, M15) ด้วย AI ตามเทคนิค SMC, Price Action, ICT หาจุด Entry, SL/TP พร้อมตารางสรุปเงื่อนไขและวาดจุดเข้าซื้อขายบนกราฟ",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
