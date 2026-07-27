@@ -24,6 +24,23 @@ interface AdminDashboardModalProps {
   onClose: () => void;
 }
 
+const formatThaiDateTime = (isoString?: string) => {
+  if (!isoString) return '-';
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return '-';
+    return d.toLocaleString('th-TH', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }) + ' น.';
+  } catch {
+    return isoString;
+  }
+};
+
 export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState<'USERS' | 'PAYMENTS' | 'LOGS'>('USERS');
   const [isLoading, setIsLoading] = useState(false);
@@ -324,11 +341,11 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                 <table className="w-full text-left text-xs text-slate-300">
                   <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
                     <tr>
-                      <th className="p-3">ชื่อสมาชิก</th>
-                      <th className="p-3">อีเมล</th>
+                      <th className="p-3">ชื่อสมาชิก & อีเมล</th>
+                      <th className="p-3">วันเวลาที่สมัครสมาชิก</th>
+                      <th className="p-3">วันเวลาเข้าใช้งานล่าสุด</th>
                       <th className="p-3">สถานะแผน</th>
                       <th className="p-3">โควตาวิเคราะห์</th>
-                      <th className="p-3">วันที่เข้าร่วม</th>
                       <th className="p-3 text-right">ปรับเปลี่ยนสิทธิ์</th>
                     </tr>
                   </thead>
@@ -344,13 +361,29 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                         const isVip = u.plan !== 'FREE';
                         return (
                           <tr key={u.id} className="hover:bg-slate-800/40">
-                            <td className="p-3 font-bold text-slate-100 flex items-center gap-2">
-                              <div className="w-7 h-7 rounded-full bg-slate-800 text-emerald-400 font-bold flex items-center justify-center text-xs">
-                                {u.name.charAt(0).toUpperCase()}
+                            <td className="p-3">
+                              <div className="font-bold text-slate-100 flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-full bg-slate-800 text-emerald-400 font-bold flex items-center justify-center text-xs shrink-0 border border-slate-700">
+                                  {u.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                  <div className="text-xs font-bold text-slate-100">{u.name}</div>
+                                  <div className="text-[10px] font-mono text-slate-400">{u.email}</div>
+                                </div>
                               </div>
-                              <span>{u.name}</span>
                             </td>
-                            <td className="p-3 font-mono text-slate-400">{u.email}</td>
+                            <td className="p-3 font-mono text-slate-300 text-[11px]">
+                              <div className="flex items-center gap-1.5 text-slate-300 font-semibold">
+                                <Clock className="w-3.5 h-3.5 text-cyan-400" />
+                                {formatThaiDateTime(u.joinedAt)}
+                              </div>
+                            </td>
+                            <td className="p-3 font-mono text-slate-300 text-[11px]">
+                              <div className="flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                <span className="text-emerald-300 font-semibold">{formatThaiDateTime(u.lastActive)}</span>
+                              </div>
+                            </td>
                             <td className="p-3">
                               {isVip ? (
                                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-extrabold border border-amber-500/30">
@@ -366,9 +399,6 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                             <td className="p-3 font-mono">
                               <span className="text-emerald-400 font-bold">{u.dailyAnalysisCount}</span>
                               <span className="text-slate-500"> / {u.dailyQuotaLimit > 900 ? '∞' : u.dailyQuotaLimit}</span>
-                            </td>
-                            <td className="p-3 text-slate-400">
-                              {new Date(u.joinedAt || Date.now()).toLocaleDateString('th-TH')}
                             </td>
                             <td className="p-3 text-right">
                               <div className="flex items-center justify-end gap-1.5">

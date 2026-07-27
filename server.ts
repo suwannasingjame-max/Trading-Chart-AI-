@@ -247,6 +247,26 @@ async function startServer() {
       return res.status(400).json({ error: 'รหัสผ่านไม่ถูกต้อง! กรุณาลองใหม่อีกครั้ง' });
     }
 
+    // Update lastActive in adminUsers
+    const nowIso = new Date().toISOString();
+    const adminIdx = adminUsers.findIndex((u) => u.email.toLowerCase() === cleanEmail);
+    if (adminIdx >= 0) {
+      adminUsers[adminIdx].lastActive = nowIso;
+      adminUsers[adminIdx].isLoggedIn = true;
+    } else {
+      adminUsers.unshift({
+        id: foundUser.id,
+        name: foundUser.name,
+        email: foundUser.email,
+        plan: foundUser.plan || 'FREE',
+        dailyAnalysisCount: 0,
+        dailyQuotaLimit: 9999,
+        joinedAt: foundUser.joinedAt || nowIso,
+        lastActive: nowIso,
+        isLoggedIn: true,
+      });
+    }
+
     res.json({
       success: true,
       user: {
