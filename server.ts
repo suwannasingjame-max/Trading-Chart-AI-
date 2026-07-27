@@ -156,6 +156,38 @@ async function startServer() {
     plan: string;
   }> = [
     {
+      id: 'usr_101',
+      name: 'สมชาย สายเทรด (Somchai)',
+      email: 'somchai.trader@gmail.com',
+      passwordHash: '123456',
+      joinedAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+      plan: 'PRO_MONTHLY',
+    },
+    {
+      id: 'usr_102',
+      name: 'วิภาดา Forex Pro',
+      email: 'wipada.fx@yahoo.com',
+      passwordHash: '123456',
+      joinedAt: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString(),
+      plan: 'PRO_ANNUAL',
+    },
+    {
+      id: 'usr_103',
+      name: 'กิตติศักดิ์ ทองคำ (Kittisak)',
+      email: 'kittisak.gold@hotmail.com',
+      passwordHash: '123456',
+      joinedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      plan: 'FREE',
+    },
+    {
+      id: 'usr_104',
+      name: 'Crypto Master TH',
+      email: 'cryptomaster@outlook.com',
+      passwordHash: '123456',
+      joinedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+      plan: 'FREE',
+    },
+    {
       id: 'usr_demo',
       name: 'Trader Pro',
       email: 'demo.trader@example.com',
@@ -352,21 +384,169 @@ async function startServer() {
     res.json(adminUsers);
   });
 
-  // 3. Update User Plan (Admin Override)
+  // 3. Update User Plan (Admin Override by ID, Email, or Name)
   app.post('/api/admin/users/update-plan', (req, res) => {
-    const { userId, plan } = req.body;
-    const u = adminUsers.find((user) => user.id === userId);
+    const { userId, email, name, plan, targetQuery } = req.body;
+    const query = (targetQuery || email || name || userId || '').toString().trim().toLowerCase();
+
+    // 1. Search by ID, Email, or Name
+    let u = adminUsers.find(
+      (user) =>
+        (userId && user.id === userId) ||
+        (query && user.id.toLowerCase() === query) ||
+        (query && user.email.toLowerCase() === query) ||
+        (query && user.name.toLowerCase() === query)
+    );
+
+    // 2. Partial search if not found
+    if (!u && query) {
+      u = adminUsers.find(
+        (user) =>
+          user.email.toLowerCase().includes(query) ||
+          user.name.toLowerCase().includes(query)
+      );
+    }
+
     if (u) {
       u.plan = plan;
       u.dailyQuotaLimit = plan === 'FREE' ? 10 : 9999;
-      return res.json({ success: true, user: u });
+      const dbUser = registeredUsersDB.find((ru) => ru.id === u.id || ru.email.toLowerCase() === u.email.toLowerCase());
+      if (dbUser) dbUser.plan = plan;
+      return res.json({
+        success: true,
+        user: u,
+        message: `ปรับสถานะผู้ใช้ "${u.name}" (${u.email}) เป็น ${plan === 'FREE' ? 'FREE (ยกเลิก VIP)' : 'Pro VIP (เปิดใช้งานแล้ว)'} เรียบร้อยแล้ว`,
+      });
     }
-    res.status(404).json({ error: 'User not found' });
+
+    // 3. If not found and admin wants to grant VIP, create user directly!
+    if (query && plan !== 'FREE') {
+      const isEmailFormat = query.includes('@');
+      const cleanEmail = isEmailFormat ? query : `${query.replace(/\s+/g, '')}@user.com`;
+      const userName = isEmailFormat ? query.split('@')[0] : (name || targetQuery || 'VIP Member');
+      const newId = 'usr_' + Date.now();
+      const nowIso = new Date().toISOString();
+
+      const newUser = {
+        id: newId,
+        name: userName,
+        email: cleanEmail,
+        plan: plan || 'PRO_MONTHLY',
+        dailyAnalysisCount: 0,
+        dailyQuotaLimit: 9999,
+        joinedAt: nowIso,
+        lastActive: nowIso,
+        isLoggedIn: false,
+      };
+
+      adminUsers.unshift(newUser);
+      registeredUsersDB.push({
+        id: newId,
+        name: userName,
+        email: cleanEmail,
+        passwordHash: '123456',
+        joinedAt: nowIso,
+        plan: newUser.plan,
+      });
+
+      return res.json({
+        success: true,
+        user: newUser,
+        message: `เพิ่มสมาชิกใหม่และเปิดใช้งาน Pro VIP ให้กับ "${userName}" (${cleanEmail}) เรียบร้อยแล้ว`,
+      });
+    }
+
+    res.status(404).json({ error: 'ไม่พบผู้สมัครจากชื่อหรืออีเมลที่ระบุ' });
+  });
+
+  // 3b. Create User (Admin Action)
+  app.post('/api/admin/users/create', (req, res) => {
+    const { name, email, password, plan = 'FREE' } = req.body;
+
+    if (!email || !name) {
+      return res.status(400).json({ error: 'กรุณาระบุชื่อและอีเมลผู้ใช้งาน' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const existing = adminUsers.find((u) => u.email.toLowerCase() === cleanEmail);
+    if (existing) {
+      return res.status(400).json({ error: 'อีเมลนี้มีอยู่ในระบบแล้ว' });
+    }
+
+    const newId = 'usr_' + Date.now();
+    const nowIso = new Date().toISOString();
+
+    const newUser = {
+      id: newId,
+      name,
+      email: cleanEmail,
+      plan,
+      dailyAnalysisCount: 0,
+      dailyQuotaLimit: plan === 'FREE' ? 10 : 9999,
+      joinedAt: nowIso,
+      lastActive: nowIso,
+      isLoggedIn: false,
+    };
+
+    adminUsers.unshift(newUser);
+    registeredUsersDB.push({
+      id: newId,
+      name,
+      email: cleanEmail,
+      passwordHash: password || '123456',
+      joinedAt: nowIso,
+      plan,
+    });
+
+    res.json({ success: true, user: newUser });
+  });
+
+  // 3c. Delete User (Admin Action)
+  app.post('/api/admin/users/delete', (req, res) => {
+    const { userId } = req.body;
+    const idx = adminUsers.findIndex((u) => u.id === userId);
+    if (idx >= 0) {
+      const removed = adminUsers.splice(idx, 1)[0];
+      const dbIdx = registeredUsersDB.findIndex((ru) => ru.id === userId || ru.email === removed.email);
+      if (dbIdx >= 0) registeredUsersDB.splice(dbIdx, 1);
+      return res.json({ success: true, message: 'ลบสมาชิกเรียบร้อยแล้ว' });
+    }
+    res.status(404).json({ error: 'ไม่พบผู้ใช้ที่ต้องการลบ' });
   });
 
   // 4. Get Payment Transactions List
   app.get('/api/admin/payments', (req, res) => {
     res.json(paymentTransactions);
+  });
+
+  // 4b. Create Manual Payment (Admin Action)
+  app.post('/api/admin/payments/create', (req, res) => {
+    const { userId, userEmail, userName, plan = 'PRO_MONTHLY', amountThb = 590, method = 'PROMPTPAY' } = req.body;
+
+    const nowIso = new Date().toISOString();
+    const newTx = {
+      id: 'tx_' + Date.now(),
+      userId: userId || 'usr_manual',
+      userName: userName || 'ลูกค้าชำระตรง',
+      userEmail: userEmail || 'manual@example.com',
+      plan,
+      amountThb: Number(amountThb) || 590,
+      method,
+      status: 'APPROVED',
+      timestamp: nowIso,
+      referenceCode: 'ADMIN-' + Date.now().toString().slice(-8),
+    };
+
+    paymentTransactions.unshift(newTx);
+
+    // Update user plan if user exists
+    const u = adminUsers.find((user) => user.id === userId || user.email === userEmail);
+    if (u) {
+      u.plan = plan;
+      u.dailyQuotaLimit = 9999;
+    }
+
+    res.json({ success: true, transaction: newTx });
   });
 
   // 5. Approve / Reject Payment

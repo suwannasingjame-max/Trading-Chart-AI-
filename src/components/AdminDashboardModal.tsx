@@ -61,6 +61,8 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
   const [payments, setPayments] = useState<PaymentTransaction[]>([]);
   const [analysisLogs, setAnalysisLogs] = useState<AnalysisLogItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [vipQuickQuery, setVipQuickQuery] = useState('');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const ADMIN_PIN = 'Pasak167/22';
 
@@ -80,16 +82,16 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
     setIsLoading(true);
     try {
       const [statsRes, usersRes, paymentsRes, logsRes] = await Promise.all([
-        fetch('/api/admin/stats').then((r) => r.json()),
-        fetch('/api/admin/users').then((r) => r.json()),
-        fetch('/api/admin/payments').then((r) => r.json()),
-        fetch('/api/admin/analyses').then((r) => r.json()),
+        fetch('/api/admin/stats').then((r) => (r.ok ? r.json() : null)).catch(() => null),
+        fetch('/api/admin/users').then((r) => (r.ok ? r.json() : [])).catch(() => []),
+        fetch('/api/admin/payments').then((r) => (r.ok ? r.json() : [])).catch(() => []),
+        fetch('/api/admin/analyses').then((r) => (r.ok ? r.json() : [])).catch(() => []),
       ]);
 
-      setStats(statsRes);
-      setUsers(usersRes);
-      setPayments(paymentsRes);
-      setAnalysisLogs(logsRes);
+      if (statsRes && typeof statsRes === 'object') setStats(statsRes);
+      if (Array.isArray(usersRes)) setUsers(usersRes);
+      if (Array.isArray(paymentsRes)) setPayments(paymentsRes);
+      if (Array.isArray(logsRes)) setAnalysisLogs(logsRes);
     } catch (err) {
       console.error('Failed to load admin backoffice data:', err);
     } finally {
@@ -104,15 +106,20 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
   }, [isOpen]);
 
   // Handle manual plan change by admin
-  const handleUpdateUserPlan = async (userId: string, newPlan: SubscriptionPlanType) => {
+  const handleUpdateUserPlan = async (userId: string, newPlan: SubscriptionPlanType, targetQuery?: string) => {
     try {
       const res = await fetch('/api/admin/users/update-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, plan: newPlan }),
+        body: JSON.stringify({ userId, plan: newPlan, targetQuery }),
       });
-      if (res.ok) {
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setToastMessage(data.message || 'อัปเดตสิทธิ์ผู้ใช้งานสำเร็จ');
+        setTimeout(() => setToastMessage(null), 4500);
         fetchAdminData();
+      } else {
+        alert(data.error || 'ไม่สามารถปรับเปลี่ยนสิทธิ์ได้');
       }
     } catch (e) {
       console.error('Failed to update user plan', e);
@@ -194,10 +201,24 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
     );
   }
 
-  const filteredUsers = users.filter(
+  const filteredUsers = (users || []).filter(
     (u) =>
-      u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchTerm.toLowerCase())
+      (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (u.email || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredPayments = (payments || []).filter(
+    (p) =>
+      (p.userName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.userEmail || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.referenceCode || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredLogs = (analysisLogs || []).filter(
+    (l) =>
+      (l.symbol || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (l.strategy || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (l.userName || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -336,7 +357,164 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
         <div className="flex-1 overflow-y-auto py-4 space-y-3">
           {/* TAB 1: USERS LIST */}
           {activeTab === 'USERS' && (
-            <div className="space-y-3">
+            <div className="space-y-4">
+              {/* Toast Feedback Alert */}
+              {toastMessage && (
+                <div className="p-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-200 text-xs font-semibold flex items-center justify-between shadow-lg shadow-emerald-500/5 animate-fade-in">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>{toastMessage}</span>
+                  </div>
+                  <button
+                    onClick={() => setToastMessage(null)}
+                    className="p-1 text-emerald-400 hover:text-emerald-100 rounded-lg hover:bg-emerald-500/20"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
+              {/* QUICK PRO VIP MANAGER PANEL */}
+              <div className="bg-gradient-to-r from-slate-900 via-amber-950/20 to-slate-900 border border-amber-500/30 rounded-2xl p-4 shadow-xl space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-bold shrink-0">
+                      <Crown className="w-4 h-4 fill-amber-400" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-slate-100 flex items-center gap-1.5">
+                        ระบบจัดการสิทธิ์ Pro VIP ด้วยชื่อ หรือ อีเมลผู้สมัคร
+                      </h4>
+                      <p className="text-[11px] text-slate-400">
+                        พิมพ์ชื่อหรืออีเมลเพื่อเปิดใช้งานสิทธิ์ Pro VIP หรือยกเลิก/ปิดใช้งานได้ทันที
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Input & Quick Action Bar */}
+                <div className="flex flex-col sm:flex-row items-stretch gap-2">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 text-amber-400/80 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="พิมพ์ชื่อ (เช่น สมชาย) หรือ อีเมลผู้สมัคร..."
+                      value={vipQuickQuery}
+                      onChange={(e) => setVipQuickQuery(e.target.value)}
+                      className="w-full bg-slate-950/90 border border-amber-500/30 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-400 font-medium"
+                    />
+                    {vipQuickQuery && (
+                      <button
+                        onClick={() => setVipQuickQuery('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      disabled={!vipQuickQuery.trim()}
+                      onClick={() => handleUpdateUserPlan('', 'PRO_MONTHLY', vipQuickQuery)}
+                      className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-emerald-500 hover:from-amber-400 hover:to-emerald-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/10 flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed transition shrink-0"
+                    >
+                      <Crown className="w-3.5 h-3.5 fill-slate-950" />
+                      <span>เปิดใช้งาน Pro VIP</span>
+                    </button>
+
+                    <button
+                      disabled={!vipQuickQuery.trim()}
+                      onClick={() => handleUpdateUserPlan('', 'FREE', vipQuickQuery)}
+                      className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs border border-slate-700 flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed transition shrink-0"
+                    >
+                      <XCircle className="w-3.5 h-3.5 text-red-400" />
+                      <span>ปิดใช้งาน (ปรับเป็น Free)</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Realtime Search Preview */}
+                {vipQuickQuery.trim() && (
+                  <div className="pt-2 border-t border-slate-800/80 space-y-1.5">
+                    <div className="text-[10px] text-amber-300/80 font-bold flex items-center gap-1">
+                      <span>ผลการค้นหาสมาชิกที่ตรงกัน:</span>
+                    </div>
+
+                    {users.filter(
+                      (u) =>
+                        (u.name || '').toLowerCase().includes(vipQuickQuery.toLowerCase()) ||
+                        (u.email || '').toLowerCase().includes(vipQuickQuery.toLowerCase())
+                    ).length === 0 ? (
+                      <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-xs flex items-center justify-between flex-wrap gap-2">
+                        <span>ไม่พบผู้ใช้งานชื่อ/อีเมล "{vipQuickQuery}" ในรายชื่อปัจจุบัน</span>
+                        <button
+                          onClick={() => handleUpdateUserPlan('', 'PRO_MONTHLY', vipQuickQuery)}
+                          className="px-3 py-1 rounded-lg bg-amber-500 text-slate-950 font-black text-xs hover:bg-amber-400 transition"
+                        >
+                          + เพิ่มและเปิดสิทธิ์ Pro VIP ให้ทันที
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                        {users
+                          .filter(
+                            (u) =>
+                              (u.name || '').toLowerCase().includes(vipQuickQuery.toLowerCase()) ||
+                              (u.email || '').toLowerCase().includes(vipQuickQuery.toLowerCase())
+                          )
+                          .map((u) => {
+                            const isVip = u.plan !== 'FREE';
+                            return (
+                              <div
+                                key={u.id}
+                                className="p-2 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between gap-2"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded-full bg-slate-800 text-emerald-400 font-bold flex items-center justify-center text-xs shrink-0 border border-slate-700">
+                                    {u.name.charAt(0).toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <span className="text-xs font-bold text-slate-100">{u.name}</span>
+                                    <span className="text-[10px] font-mono text-slate-400 ml-2">({u.email})</span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {isVip ? (
+                                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-extrabold border border-amber-500/30">
+                                      Pro VIP
+                                    </span>
+                                  ) : (
+                                    <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 text-[10px] font-medium border border-slate-700">
+                                      FREE
+                                    </span>
+                                  )}
+
+                                  {isVip ? (
+                                    <button
+                                      onClick={() => handleUpdateUserPlan(u.id, 'FREE')}
+                                      className="px-2.5 py-1 rounded-lg bg-red-500/20 text-red-300 hover:bg-red-500/30 text-[10px] font-bold border border-red-500/30"
+                                    >
+                                      ปิดใช้งาน (เป็น Free)
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleUpdateUserPlan(u.id, 'PRO_MONTHLY')}
+                                      className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 text-[10px] font-bold border border-emerald-500/30"
+                                    >
+                                      เปิดใช้งาน Pro VIP
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <div className="overflow-x-auto rounded-xl border border-slate-800">
                 <table className="w-full text-left text-xs text-slate-300">
                   <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
@@ -438,6 +616,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                     <tr>
                       <th className="p-3">รหัสสลิป/อ้างอิง</th>
                       <th className="p-3">ชื่อลูกค้า</th>
+                      <th className="p-3">วันเวลาที่ชำระเงิน</th>
                       <th className="p-3">แผนสมาชิก</th>
                       <th className="p-3">ยอดเงิน (บาท)</th>
                       <th className="p-3">ช่องทาง</th>
@@ -446,19 +625,22 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60 bg-slate-900/40">
-                    {payments.length === 0 ? (
+                    {filteredPayments.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="p-6 text-center text-slate-500">
+                        <td colSpan={8} className="p-6 text-center text-slate-500">
                           ยังไม่มีประวัติการชำระเงิน
                         </td>
                       </tr>
                     ) : (
-                      payments.map((tx) => (
+                      filteredPayments.map((tx) => (
                         <tr key={tx.id} className="hover:bg-slate-800/40">
                           <td className="p-3 font-mono text-emerald-400 font-bold">{tx.referenceCode}</td>
                           <td className="p-3 font-bold text-slate-100">
                             <div>{tx.userName}</div>
                             <span className="text-[10px] font-normal text-slate-400">{tx.userEmail}</span>
+                          </td>
+                          <td className="p-3 font-mono text-slate-300 text-[11px]">
+                            {formatThaiDateTime(tx.timestamp)}
                           </td>
                           <td className="p-3 font-semibold text-slate-200">
                             {tx.plan === 'PRO_ANNUAL' ? 'Pro VIP (รายปี)' : 'Pro VIP (รายเดือน)'}
@@ -516,7 +698,8 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                 <table className="w-full text-left text-xs text-slate-300">
                   <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
                     <tr>
-                      <th className="p-3">เวลาวิเคราะห์</th>
+                      <th className="p-3">วันเวลาวิเคราะห์</th>
+                      <th className="p-3">ผู้ใช้งาน</th>
                       <th className="p-3">ชื่อคู่เงิน / สินทรัพย์</th>
                       <th className="p-3">ระบบการเทรด</th>
                       <th className="p-3">สัญญาณ (Signal)</th>
@@ -524,18 +707,19 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60 bg-slate-900/40">
-                    {analysisLogs.length === 0 ? (
+                    {filteredLogs.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="p-6 text-center text-slate-500">
+                        <td colSpan={6} className="p-6 text-center text-slate-500">
                           ยังไม่มีบันทึกกิจกรรม AI
                         </td>
                       </tr>
                     ) : (
-                      analysisLogs.map((log) => (
+                      filteredLogs.map((log) => (
                         <tr key={log.id} className="hover:bg-slate-800/40">
-                          <td className="p-3 text-slate-400 font-mono">
-                            {new Date(log.timestamp).toLocaleTimeString('th-TH')}
+                          <td className="p-3 text-slate-300 font-mono text-[11px]">
+                            {formatThaiDateTime(log.timestamp)}
                           </td>
+                          <td className="p-3 font-semibold text-slate-200">{log.userName || 'สมาชิก'}</td>
                           <td className="p-3 font-bold text-slate-100">{log.symbol}</td>
                           <td className="p-3 font-mono text-cyan-400">{log.strategy}</td>
                           <td className="p-3">
