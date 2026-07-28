@@ -206,15 +206,6 @@ export default function App() {
 
   // Primary AI Analysis Execution Handler
   const handleRunAnalysis = async () => {
-    if (!user.apiKey || !user.apiKey.trim()) {
-      setErrorMsg('กรุณากรอก Google Gemini API Key ส่วนตัวของคุณในช่องตั้งค่าด้านล่างก่อนเริ่มวิเคราะห์ (ไม่มีระบบโควตาส่วนกลาง - ใช้ API Key และเครดิตของบัญชีคุณเอง)');
-      const keyElement = document.getElementById('gemini-key-section');
-      if (keyElement) {
-        keyElement.scrollIntoView({ behavior: 'smooth' });
-      }
-      return;
-    }
-
     if (!images.h4Image && !images.h1Image && !images.m15Image) {
       setErrorMsg('กรุณาอัปโหลดรูปภาพกราฟอย่างน้อย 1 Timeframe (แนะนำครบ H4, H1, M15 เพื่อความแม่นยำ)');
       return;
@@ -285,7 +276,6 @@ export default function App() {
       <Navbar
         onOpenHistory={() => setIsHistoryOpen(true)}
         onOpenHelp={() => setIsHelpOpen(true)}
-        onOpenSubscription={() => setIsSubscriptionOpen(true)}
         onOpenAuth={() => setIsAuthOpen(true)}
         onOpenAdmin={() => setIsAdminOpen(true)}
         onOpenEaStore={() => setIsEaStoreOpen(true)}

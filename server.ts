@@ -628,11 +628,11 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
     res.json(analysisLogs);
   });
 
-  // Helper to get Gemini client using user's personal API Key
+  // Helper to get Gemini client using user's personal API Key or system fallback
   const getAi = (userApiKey?: string) => {
-    const apiKey = userApiKey && userApiKey.trim();
+    const apiKey = (userApiKey && userApiKey.trim()) || process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      throw new Error('กรุณาระบุ Google Gemini API Key ส่วนตัวของคุณก่อนใช้งาน');
+      throw new Error('กรุณาระบุ Google Gemini API Key ในระบบก่อนเริ่มใช้งาน');
     }
     return new GoogleGenAI({
       apiKey,
@@ -652,11 +652,12 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
   // Multi-Timeframe Chart Analysis Endpoint
   app.post('/api/analyze', async (req, res) => {
     try {
-      const { h4Image, h1Image, m15Image, strategy = 'SMC', customNotes = '', customApiKey } = req.body;
+      const { h4Image, h1Image, m15Image, strategy = 'SMC', customNotes = '', customApiKey } = req.body || {};
 
-      if (!customApiKey || !customApiKey.trim()) {
+      const effectiveKey = (customApiKey && customApiKey.trim()) || process.env.GEMINI_API_KEY;
+      if (!effectiveKey) {
         return res.status(400).json({
-          error: 'กรุณาระบุ Google Gemini API Key ส่วนตัวของคุณในช่องตั้งค่าก่อนวิเคราะห์กราฟ (ระบบใช้ API Key และเครดิตของบัญชีคุณเอง)'
+          error: 'กรุณาระบุ Google Gemini API Key ส่วนตัวของคุณในช่องตั้งค่าก่อนวิเคราะห์กราฟ'
         });
       }
 
@@ -872,7 +873,7 @@ ${customNotes ? `คำแนะนำเพิ่มเติมจากผู
       try {
         const ai = getAi(customApiKey);
         const result = await ai.models.generateContent({
-          model: 'gemini-3.6-flash',
+          model: 'gemini-2.5-flash',
           contents: { parts },
           config: {
             responseMimeType: 'application/json',
@@ -1028,9 +1029,9 @@ ${customNotes ? `คำแนะนำเพิ่มเติมจากผู
       let auditData: any = null;
 
       try {
-        const ai = getAi(req.body.customApiKey);
+        const ai = getAi(req.body?.customApiKey);
         const result = await ai.models.generateContent({
-          model: 'gemini-3.6-flash',
+          model: 'gemini-2.5-flash',
           contents: { parts },
           config: {
             responseMimeType: 'application/json',

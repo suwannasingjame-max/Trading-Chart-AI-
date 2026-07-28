@@ -101,6 +101,19 @@ export interface SampleChartPreset {
 
 export type SubscriptionPlanType = 'FREE' | 'PRO_MONTHLY' | 'PRO_ANNUAL';
 
+export interface SubscriptionPricingTier {
+  id: SubscriptionPlanType;
+  name: string;
+  badge?: string;
+  isPopular?: boolean;
+  priceThb: number;
+  priceUsd: number;
+  period: string;
+  description: string;
+  features: string[];
+  recommended?: boolean;
+}
+
 export interface UserProfile {
   id: string;
   name: string;
