@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { PositionAuditResult, PositionAuditRequest, UserProfile } from '../types';
+import React, { useState, useRef, useEffect } from 'react';
+import { PositionAuditResult, PositionAuditRequest, UserProfile, AuditChatMessage } from '../types';
 import {
   X,
   Upload,
@@ -21,7 +21,11 @@ import {
   Layers,
   ChevronRight,
   Sliders,
-  Flame
+  Flame,
+  Send,
+  MessageSquare,
+  Bot,
+  User as UserIcon,
 } from 'lucide-react';
 
 interface PositionAuditModalProps {
@@ -49,7 +53,20 @@ export const PositionAuditModal: React.FC<PositionAuditModalProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [auditResult, setAuditResult] = useState<PositionAuditResult | null>(null);
 
+  // Consultation Chat States
+  const [chatMessages, setChatMessages] = useState<AuditChatMessage[]>([]);
+  const [inputQuestion, setInputQuestion] = useState<string>('');
+  const [isSendingChat, setIsSendingChat] = useState<boolean>(false);
+  const [chatError, setChatError] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const chatBottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (chatMessages.length > 0) {
+      chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages, isSendingChat]);
 
   if (!isOpen) return null;
 
@@ -123,6 +140,16 @@ export const PositionAuditModal: React.FC<PositionAuditModalProps> = ({
 
       const data: PositionAuditResult = await response.json();
       setAuditResult(data);
+
+      // Initialize consultation chat with warm greeting from AI Advisor
+      setChatMessages([
+        {
+          id: 'welcome_' + Date.now(),
+          sender: 'ai',
+          text: `สวัสดีครับ! ผมเป็น AI Trade Advisor ประจำออเดอร์ ${data.symbol || symbol} (${data.orderType}) ของคุณ\n\nผมได้วิเคราะห์โครงสร้างกราฟและประเมินสถานะให้เรียบร้อยแล้ว หากมีคำถามเพิ่มเติม เช่น ควรเลื่อน SL เมื่อไหร่, ควรแบ่งปิดกี่ %, หรืออยากให้วิเคราะห์จุดเสี่ยงจุดไหนเป็นพิเศษ สามารถพิมพ์ถามผมได้ทันทีครับ!`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        },
+      ]);
     } catch (err: any) {
       console.error('Audit submit error:', err);
       setErrorMsg(err.message || 'เกิดข้อผิดพลาดระหว่างการวิเคราะห์ออเดอร์ กรุณาลองใหม่อีกครั้ง');
@@ -131,10 +158,96 @@ export const PositionAuditModal: React.FC<PositionAuditModalProps> = ({
     }
   };
 
+  const handleSendQuestion = async (customQuestionText?: string) => {
+    const qText = customQuestionText || inputQuestion;
+    if (!qText || !qText.trim() || isSendingChat || !auditResult) return;
+
+    const userMsgText = qText.trim();
+    const userMsg: AuditChatMessage = {
+      id: 'msg_' + Date.now(),
+      sender: 'user',
+      text: userMsgText,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    setChatMessages((prev) => [...prev, userMsg]);
+    if (!customQuestionText) setInputQuestion('');
+    setIsSendingChat(true);
+    setChatError(null);
+
+    try {
+      const historyPayload = chatMessages.map((m) => ({
+        role: m.sender === 'user' ? ('user' as const) : ('assistant' as const),
+        content: m.text,
+      }));
+
+      const response = await fetch('/api/audit-consult', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: userMsgText,
+          history: historyPayload,
+          positionInfo: {
+            symbol: auditResult.symbol,
+            orderType: auditResult.orderType,
+            timeframe: auditResult.timeframe,
+            entryPrice: auditResult.entryPrice || entryPrice,
+            currentPrice: auditResult.currentPrice || currentPrice,
+            stopLoss: auditResult.stopLoss || stopLoss,
+            takeProfit: auditResult.takeProfit || takeProfit,
+            notes: auditResult.notes || notes,
+            recommendationTitle: auditResult.recommendationTitle,
+            recommendationSummary: auditResult.recommendationSummary,
+            qualityScore: auditResult.qualityScore,
+            structureAnalysis: auditResult.structureAnalysis,
+            cautionPoints: auditResult.cautionPoints,
+            managementAdvice: auditResult.managementAdvice,
+          },
+          chartImageBase64: chartImage,
+          customApiKey: user?.apiKey,
+        }),
+      });
+
+      if (!response.ok) {
+        let errStr = 'เกิดข้อผิดพลาดในการส่งคำถามถึง AI Advisor';
+        try {
+          const errData = await response.json();
+          errStr = errData.error || errStr;
+        } catch {}
+        throw new Error(errStr);
+      }
+
+      const resData = await response.json();
+      const aiMsg: AuditChatMessage = {
+        id: 'ai_' + Date.now(),
+        sender: 'ai',
+        text: resData.reply,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+
+      setChatMessages((prev) => [...prev, aiMsg]);
+    } catch (err: any) {
+      console.error('Chat consult error:', err);
+      setChatError(err.message || 'เกิดข้อผิดพลาดในการรับคำปรึกษาจาก AI');
+    } finally {
+      setIsSendingChat(false);
+    }
+  };
+
   const handleReset = () => {
     setAuditResult(null);
     setErrorMsg(null);
+    setChatMessages([]);
+    setInputQuestion('');
+    setChatError(null);
   };
+
+  const quickQuestions = [
+    '🛡️ ควรขยับ SL ไปบังทุน (Breakeven) ตอนนี้ดีไหม?',
+    '✂️ แนะนำแบ่งปิดทำกำไร (Partial Close) กี่ % ดี?',
+    '📈 ถ้าราคาพุ่งต่อ เป้าหมายถัดไปควรตั้งไว้ตรงไหน?',
+    '⚠️ จุดไหนที่บอกว่าแผนนี้ล้มเหลวและต้องตัดขาดทุนทันที?',
+  ];
 
   const timeframesList = ['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1'];
   const symbolsList = ['XAU/USD (Gold)', 'EUR/USD', 'GBP/USD', 'BTC/USD', 'USD/JPY'];
@@ -575,6 +688,133 @@ export const PositionAuditModal: React.FC<PositionAuditModalProps> = ({
                   />
                 </div>
               )}
+
+              {/* NEW FEATURE: INTERACTIVE 1-ON-1 AI TRADE ADVISOR CONSULTATION CHAT */}
+              <div className="bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 rounded-3xl border border-cyan-500/30 p-5 shadow-2xl space-y-4 relative">
+                
+                {/* Chat Section Header */}
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                      <MessageSquare className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-extrabold text-slate-100 flex items-center gap-2">
+                        สนทนา & ขอคำปรึกษาเพิ่มเติมกับ AI Advisor
+                        <span className="text-[10px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-2 py-0.5 rounded-full font-bold">
+                          1-on-1 Consultation
+                        </span>
+                      </h4>
+                      <p className="text-[11px] text-slate-400">
+                        ถามข้อสงสัย วางแผนการเลื่อน SL หรือขอคำปรึกษาแผนรับมือสภาวะกราฟแบบเจาะลึก
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Messages Thread Container */}
+                <div className="bg-slate-950/80 rounded-2xl border border-slate-800/80 p-4 max-h-80 overflow-y-auto space-y-3 text-xs">
+                  {chatMessages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={`flex gap-2.5 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      {msg.sender === 'ai' && (
+                        <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-600 text-slate-950 flex items-center justify-center shrink-0 mt-0.5 shadow-md">
+                          <Bot className="w-4 h-4" />
+                        </div>
+                      )}
+
+                      <div
+                        className={`max-w-[85%] rounded-2xl p-3.5 space-y-1 shadow-md leading-relaxed whitespace-pre-line ${
+                          msg.sender === 'user'
+                            ? 'bg-gradient-to-r from-cyan-600 to-teal-600 text-slate-50 rounded-tr-none'
+                            : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-tl-none'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-3 text-[10px] opacity-70 mb-1 font-bold">
+                          <span>{msg.sender === 'user' ? 'คุณ (You)' : 'AI Trade Advisor'}</span>
+                          <span>{msg.timestamp}</span>
+                        </div>
+                        <p>{msg.text}</p>
+                      </div>
+
+                      {msg.sender === 'user' && (
+                        <div className="w-7 h-7 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 flex items-center justify-center shrink-0 mt-0.5">
+                          <UserIcon className="w-4 h-4" />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Loading Indicator inside chat */}
+                  {isSendingChat && (
+                    <div className="flex items-center gap-2.5 justify-start">
+                      <div className="w-7 h-7 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center shrink-0">
+                        <Bot className="w-4 h-4 animate-bounce" />
+                      </div>
+                      <div className="bg-slate-900 border border-slate-800 text-slate-400 rounded-2xl px-4 py-2.5 flex items-center gap-2 text-xs">
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-cyan-400" />
+                        <span>AI Advisor กำลังพิมพ์คำตอบ...</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div ref={chatBottomRef} />
+                </div>
+
+                {/* Quick Question Suggestion Chips */}
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-bold text-slate-400 block">
+                    💡 คำถามยอดนิยม (กดเพื่อถามทันที):
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {quickQuestions.map((chip, idx) => (
+                      <button
+                        key={idx}
+                        disabled={isSendingChat}
+                        onClick={() => handleSendQuestion(chip)}
+                        className="text-[11px] bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/50 text-slate-300 hover:text-cyan-300 px-3 py-1.5 rounded-xl transition text-left shrink-0 disabled:opacity-50"
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Chat Error Alert */}
+                {chatError && (
+                  <div className="p-2.5 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                    <span>{chatError}</span>
+                  </div>
+                )}
+
+                {/* Input Bar */}
+                <div className="flex items-center gap-2 pt-1">
+                  <input
+                    type="text"
+                    value={inputQuestion}
+                    onChange={(e) => setInputQuestion(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendQuestion()}
+                    placeholder="พิมพ์คำถามหรือขอคำปรึกษาเกี่ยวกับออเดอร์นี้ที่นี่..."
+                    disabled={isSendingChat}
+                    className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 disabled:opacity-50"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleSendQuestion()}
+                    disabled={isSendingChat || !inputQuestion.trim()}
+                    className={`p-3 rounded-2xl font-bold transition flex items-center justify-center ${
+                      isSendingChat || !inputQuestion.trim()
+                        ? 'bg-slate-800 text-slate-600 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 text-slate-950 shadow-lg shadow-cyan-950/50'
+                    }`}
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
 
               {/* RESET BUTTON */}
               <button

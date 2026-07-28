@@ -50,25 +50,49 @@ const STANDARD_TIMEFRAMES: TimeframeConfig[] = [
 const SCALPING_TIMEFRAMES: TimeframeConfig[] = [
   {
     key: 'h4Image',
-    title: 'TF M15 (15-Minute)',
-    badge: 'Macro Scalp Bias',
-    role: 'วิเคราะห์โครงสร้างคลื่นแม่ & Trend หลักสายซิ่ง (Macro Bias M15)',
+    title: 'TF H4 (4-Hour)',
+    badge: 'Macro Trend & Structure',
+    role: 'วิเคราะห์โครงสร้างใหญ่และเทรนด์หลักภาพกว้าง คุมทิศทางราคา',
     bgGrad: 'from-amber-500/10 to-orange-500/5',
     borderColor: 'border-amber-500/30',
   },
   {
     key: 'h1Image',
-    title: 'TF M5 (5-Minute)',
-    badge: 'Bounce & Pullback Zone',
-    role: 'วิเคราะห์โซนย่อเด้งตามเทรนด์หลัก & Demand/Supply M5',
+    title: 'TF H1 (1-Hour)',
+    badge: 'Primary Trend & Level',
+    role: 'วิเคราะห์กรอบราคาและแนวรับแนวต้าน/Order Block ระดับชั่วโมง',
+    bgGrad: 'from-blue-500/10 to-indigo-500/5',
+    borderColor: 'border-blue-500/30',
+  },
+  {
+    key: 'm30Image',
+    title: 'TF M30 (30-Minute)',
+    badge: 'Key Zone คุมราคา',
+    role: 'วิเคราะห์โซน Supply/Demand และจุดพักตัวภาพกลาง M30',
+    bgGrad: 'from-purple-500/10 to-indigo-500/5',
+    borderColor: 'border-purple-500/30',
+  },
+  {
+    key: 'm15Image',
+    title: 'TF M15 (15-Minute)',
+    badge: 'Pullback & Setup Zone',
+    role: 'วิเคราะห์จุดย่อเด้งตามเทรนด์หลัก & FVG/Order Block M15',
     bgGrad: 'from-cyan-500/10 to-blue-500/5',
     borderColor: 'border-cyan-500/30',
   },
   {
-    key: 'm15Image',
-    title: '⚡ TF M1 (1-Minute)',
-    badge: 'Sniper Trigger M1',
-    role: 'จุดเข้าเทรด M1 คมกริบ โดนลากน้อยที่สุด เน้นกำไรเยอะ (Sniper Entry M1)',
+    key: 'm5Image',
+    title: 'TF M5 (5-Minute)',
+    badge: 'Micro Trigger Zone',
+    role: 'วิเคราะห์การกลับตัวย่อย Micro ChoCH/OB เพื่อเตรียมเข้าเทรด',
+    bgGrad: 'from-teal-500/10 to-emerald-500/5',
+    borderColor: 'border-teal-500/30',
+  },
+  {
+    key: 'm1Image',
+    title: '⚡ TF M1 (1-Min Sniper Entry)',
+    badge: 'Precision Trigger M1',
+    role: 'จุดเข้าเทรด M1 คมกริบ โดนลากน้อยที่สุด เน้นกำไร R:R สูงสุด (Sniper Entry M1)',
     bgGrad: 'from-emerald-500/20 via-teal-500/10 to-emerald-500/5',
     borderColor: 'border-emerald-500/50',
   },
@@ -91,7 +115,10 @@ export const ChartUploader: React.FC<ChartUploaderProps> = ({
   const fileInputRefs = {
     h4Image: useRef<HTMLInputElement>(null),
     h1Image: useRef<HTMLInputElement>(null),
+    m30Image: useRef<HTMLInputElement>(null),
     m15Image: useRef<HTMLInputElement>(null),
+    m5Image: useRef<HTMLInputElement>(null),
+    m1Image: useRef<HTMLInputElement>(null),
   };
 
   const handleFileChange = (tfKey: keyof ChartImageInput, file: File) => {
@@ -141,7 +168,7 @@ export const ChartUploader: React.FC<ChartUploaderProps> = ({
   };
 
   // Count uploaded images
-  const uploadedCount = [images.h4Image, images.h1Image, images.m15Image].filter(Boolean).length;
+  const uploadedCount = currentTfConfigs.filter((tf) => Boolean(images[tf.key])).length;
 
   return (
     <div className="bg-slate-900/80 rounded-2xl p-5 border border-slate-800 shadow-xl backdrop-blur-sm space-y-4">
@@ -173,7 +200,7 @@ export const ChartUploader: React.FC<ChartUploaderProps> = ({
             }`}
           >
             <Zap className={`w-4 h-4 ${isScalping ? 'text-amber-300 animate-pulse' : 'text-slate-500'}`} />
-            <span>⚡ โหมดเทรดสายซิ่ง (M15, M5, M1)</span>
+            <span>⚡ โหมดเทรดสายซิ่ง (6 Timeframes: H4, H1, M30, M15, M5, M1)</span>
           </button>
         </div>
       </div>
@@ -188,22 +215,22 @@ export const ChartUploader: React.FC<ChartUploaderProps> = ({
             <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
               <span>
                 {isScalping
-                  ? 'อัปโหลดรูปภาพกราฟ 3 Timeframe (M15, M5, M1) สำหรับสายซิ่ง'
+                  ? 'อัปโหลดรูปภาพกราฟสายซิ่ง (6 Timeframes: H4, H1, M30, M15, M5, M1)'
                   : 'อัปโหลดรูปภาพกราฟ 3 Timeframe (H4, H1, M15)'}
               </span>
               {isScalping && (
                 <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                  ⚡ M1 Scalper Mode
+                  ⚡ 6-TF Full Analysis + Entry M1
                 </span>
               )}
             </h2>
             <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-slate-800 text-slate-300 border border-slate-700">
-              อัปโหลดแล้ว {uploadedCount}/3
+              อัปโหลดแล้ว {uploadedCount}/{currentTfConfigs.length}
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-1">
             {isScalping
-              ? 'แนบรูป M15 (คลื่นแม่) -> M5 (จุดย่อเด้ง) -> M1 (เข้าเทรดสไนเปอร์ โดนลากน้อยที่สุด กำไรเยอะ)'
+              ? 'แนบรูปภาพกราฟครบทุกกรอบเวลา H4, H1, M30, M15, M5 และ M1 เพื่อวิเคราะห์ทิศทางและจุดเข้าสไนเปอร์ M1 ที่คมกริบที่สุด'
               : 'ลากและวางรูปภาพภาพกราฟ TradingView / MetaTrader หรือแนบไฟล์แยกตาม Timeframe'}
           </p>
         </div>
@@ -227,8 +254,8 @@ export const ChartUploader: React.FC<ChartUploaderProps> = ({
         </div>
       </div>
 
-      {/* 3 Timeframe Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Timeframe Cards Grid */}
+      <div className={`grid grid-cols-1 ${isScalping ? 'md:grid-cols-2 lg:grid-cols-3' : 'md:grid-cols-3'} gap-4`}>
         {currentTfConfigs.map((tf) => {
           const imageSrc = images[tf.key];
           const isDragging = dragActiveTF === tf.key;

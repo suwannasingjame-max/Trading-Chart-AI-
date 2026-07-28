@@ -14,8 +14,9 @@ import { AuthModal } from './components/AuthModal';
 import { AdminDashboardModal } from './components/AdminDashboardModal';
 import { EaStoreModal } from './components/EaStoreModal';
 import { PositionAuditModal } from './components/PositionAuditModal';
+import { DailyMarketAnalysisModal } from './components/DailyMarketAnalysisModal';
 import { GeminiApiKeyCard } from './components/GeminiApiKeyCard';
-import { Sparkles, Play, RefreshCw, AlertCircle, ShieldCheck, ArrowRight, CheckCircle2, LayoutDashboard, Bot, BarChart2, Zap } from 'lucide-react';
+import { Sparkles, Play, RefreshCw, AlertCircle, ShieldCheck, ArrowRight, CheckCircle2, LayoutDashboard, Bot, BarChart2, Zap, Compass } from 'lucide-react';
 
 export default function App() {
   const [analysisMode, setAnalysisMode] = useState<AnalysisMode>('STANDARD');
@@ -23,7 +24,10 @@ export default function App() {
   const [images, setImages] = useState<ChartImageInput>({
     h4Image: null,
     h1Image: null,
+    m30Image: null,
     m15Image: null,
+    m5Image: null,
+    m1Image: null,
   });
   const [customNotes, setCustomNotes] = useState<string>('');
 
@@ -40,6 +44,7 @@ export default function App() {
   const [isAdminOpen, setIsAdminOpen] = useState<boolean>(false);
   const [isEaStoreOpen, setIsEaStoreOpen] = useState<boolean>(false);
   const [isPositionAuditOpen, setIsPositionAuditOpen] = useState<boolean>(false);
+  const [isDailyAnalysisOpen, setIsDailyAnalysisOpen] = useState<boolean>(false);
 
   // User Profile State
   const [user, setUser] = useState<UserProfile>(() => {
@@ -197,22 +202,34 @@ export default function App() {
   // Preset Selection Handler
   const handleSelectPreset = (preset: SamplePreset) => {
     setStrategy(preset.strategy);
-    if (preset.id.includes('m1_scalp') || preset.symbol.includes('M1 Scalp')) {
+    const isScalpPreset = preset.id.includes('m1_scalp') || preset.symbol.includes('M1 Scalp');
+    if (isScalpPreset) {
       setAnalysisMode('SCALPING');
+      setImages({
+        h4Image: preset.h4DataUrl,
+        h1Image: preset.h1DataUrl,
+        m30Image: preset.h1DataUrl,
+        m15Image: preset.m15DataUrl,
+        m5Image: preset.m15DataUrl,
+        m1Image: preset.m15DataUrl,
+      });
     } else {
       setAnalysisMode('STANDARD');
+      setImages({
+        h4Image: preset.h4DataUrl,
+        h1Image: preset.h1DataUrl,
+        m30Image: null,
+        m15Image: preset.m15DataUrl,
+        m5Image: null,
+        m1Image: null,
+      });
     }
-    setImages({
-      h4Image: preset.h4DataUrl,
-      h1Image: preset.h1DataUrl,
-      m15Image: preset.m15DataUrl,
-    });
     setErrorMsg(null);
   };
 
   // Primary AI Analysis Execution Handler
   const handleRunAnalysis = async () => {
-    if (!images.h4Image && !images.h1Image && !images.m15Image) {
+    if (!images.h4Image && !images.h1Image && !images.m30Image && !images.m15Image && !images.m5Image && !images.m1Image) {
       setErrorMsg('กรุณาอัปโหลดรูปภาพกราฟอย่างน้อย 1 Timeframe');
       return;
     }
@@ -223,8 +240,8 @@ export default function App() {
 
     try {
       const stepText = analysisMode === 'SCALPING'
-        ? 'กำลังประมวลผลโครงสร้างราคาสายซิ่ง M15 -> M5 -> M1 (เข้าเทรดสไนเปอร์ M1)...'
-        : 'กำลังประมวลผลโครงสร้างราคา Multi-Timeframe (H4 -> H1 -> M15)...';
+        ? 'กำลังประมวลผลโครงสร้างราคาสายซิ่ง 6 Timeframes (H4, H1, M30, M15, M5, M1) เพื่อเข้าเทรดสไนเปอร์ M1...'
+        : 'กำลังประมวลผลโครงสร้างราคา Multi-Timeframe (H4 → H1 → M15)...';
       
       setTimeout(() => setLoadingStep(stepText), 1000);
       setTimeout(() => setLoadingStep(`วิเคราะห์ตามระบบ ${strategy} (ค้นหาจุดเด้ง / SL แคบ / R:R สูง)...`), 2500);
@@ -235,7 +252,10 @@ export default function App() {
         body: JSON.stringify({
           h4Image: images.h4Image,
           h1Image: images.h1Image,
+          m30Image: images.m30Image,
           m15Image: images.m15Image,
+          m5Image: images.m5Image,
+          m1Image: images.m1Image,
           strategy,
           analysisMode,
           customNotes,
@@ -295,6 +315,7 @@ export default function App() {
         onOpenAdmin={() => setIsAdminOpen(true)}
         onOpenEaStore={() => setIsEaStoreOpen(true)}
         onOpenPositionAudit={() => setIsPositionAuditOpen(true)}
+        onOpenDailyAnalysis={() => setIsDailyAnalysisOpen(true)}
         historyCount={history.length}
         user={user}
       />
@@ -324,6 +345,13 @@ export default function App() {
 
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
             <button
+              onClick={() => setIsDailyAnalysisOpen(true)}
+              className="text-xs font-bold px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-cyan-500/20 hover:from-emerald-500/30 hover:to-cyan-500/30 text-emerald-300 border border-emerald-500/40 shadow-md flex items-center gap-1.5 transition"
+            >
+              <Compass className="w-4 h-4 text-emerald-400" />
+              <span>วิเคราะห์สภาวะตลาดประจำวัน</span>
+            </button>
+            <button
               onClick={() => setIsPositionAuditOpen(true)}
               className="text-xs font-bold px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500/20 via-teal-500/20 to-emerald-500/20 hover:from-cyan-500/30 hover:to-emerald-500/30 text-cyan-300 border border-cyan-500/40 shadow-md flex items-center gap-1.5 transition"
             >
@@ -334,7 +362,7 @@ export default function App() {
               onClick={() => setIsHelpOpen(true)}
               className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition shrink-0"
             >
-              📖 คู่มือวิเคราะห์กราฟ
+              📖 คู่มือวิธีใช้
             </button>
           </div>
         </div>
@@ -490,7 +518,14 @@ export default function App() {
         onClose={() => setIsPositionAuditOpen(false)}
         user={user}
       />
+
+      <DailyMarketAnalysisModal
+        isOpen={isDailyAnalysisOpen}
+        onClose={() => setIsDailyAnalysisOpen(false)}
+        user={user}
+      />
     </div>
   );
 }
+
 

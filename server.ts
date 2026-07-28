@@ -652,7 +652,7 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
   // Multi-Timeframe Chart Analysis Endpoint
   app.post('/api/analyze', async (req, res) => {
     try {
-      const { h4Image, h1Image, m15Image, strategy = 'SMC', customNotes = '', customApiKey, analysisMode = 'STANDARD' } = req.body || {};
+      const { h4Image, h1Image, m30Image, m15Image, m5Image, m1Image, strategy = 'SMC', customNotes = '', customApiKey, analysisMode = 'STANDARD' } = req.body || {};
 
       const effectiveKey = (customApiKey && customApiKey.trim()) || process.env.GEMINI_API_KEY;
       if (!effectiveKey) {
@@ -661,7 +661,7 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
         });
       }
 
-      if (!h4Image && !h1Image && !m15Image) {
+      if (!h4Image && !h1Image && !m30Image && !m15Image && !m5Image && !m1Image) {
         return res.status(400).json({ error: 'กรุณาอัปโหลดรูปภาพกราฟอย่างน้อย 1 Timeframe' });
       }
 
@@ -670,98 +670,121 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
       // Strategy specific system prompts & instructions in Thai
       const strategyGuide: Record<string, string> = {
         SMC: `เน้นวิเคราะห์ Smart Money Concepts (SMC):
-- ${isScalpMode ? 'TF M15' : 'TF H4'}: หา Higher Timeframe Bias, Major Market Structure (HH/HL/LH/LL), Major Order Block (OB), Liquidity Pool (BSL/SSL).
-- ${isScalpMode ? 'TF M5' : 'TF H1'}: หา Inducement, Fair Value Gap (FVG), Change of Character (ChoCH), Break of Structure (BoS), Liquidity Sweep และจุดพักตัวย่อเด้ง.
-- ${isScalpMode ? 'TF M1' : 'TF M15'}: หา จุดเข้าเทรด Sniper Trigger (Micro OB / FVG tap, Lower TF ChoCH + BoS, Wick Rejection Spike) พร้อมคำนวณ Entry, SL ที่แคบมาก (โดนลากน้อย) และ TP1, TP2, TP3 (กำไรเยอะ R:R สูง).`,
+- ${isScalpMode ? 'TF H4, H1, M30' : 'TF H4'}: หา Higher Timeframe Bias, Major Market Structure (HH/HL/LH/LL), Major Order Block (OB), Liquidity Pool (BSL/SSL).
+- ${isScalpMode ? 'TF M15, M5' : 'TF H1'}: หา Inducement, Fair Value Gap (FVG), Change of Character (ChoCH), Break of Structure (BoS), Liquidity Sweep และจุดพักตัวย่อเด้ง.
+- ${isScalpMode ? 'TF M1' : 'TF M15'}: หา จุดเข้าเทรด Sniper Trigger M1 (Micro OB / FVG tap, M1 ChoCH + BoS, Wick Rejection Spike) พร้อมคำนวณ Entry, SL ที่แคบมาก (โดนลากน้อย) และ TP1, TP2, TP3 (กำไรเยอะ R:R สูง).`,
         
         PRICE_ACTION: `เน้นวิเคราะห์ Classic Price Action & Chart Patterns:
-- ${isScalpMode ? 'TF M15' : 'TF H4'}: แนวรับแนวต้านสำคัญ (Key Support & Resistance), Major Trendlines, Dominant Trend.
-- ${isScalpMode ? 'TF M5' : 'TF H1'}: รูปแบบกราฟ (Chart Patterns เช่น Head & Shoulders, Double Top/Bottom, Triangles, Channel), Candlestick Pattern (Pinbar, Engulfing).
-- ${isScalpMode ? 'TF M1' : 'TF M15'}: จุดเข้า Breakout & Retest หรือ Bounce จาก Key Level หา Entry, SL และ TP.`,
+- ${isScalpMode ? 'TF H4, H1, M30' : 'TF H4'}: แนวรับแนวต้านสำคัญ (Key Support & Resistance), Major Trendlines, Dominant Trend ภาพกว้าง.
+- ${isScalpMode ? 'TF M15, M5' : 'TF H1'}: รูปแบบกราฟ (Chart Patterns เช่น Head & Shoulders, Double Top/Bottom, Triangles, Channel), Candlestick Pattern (Pinbar, Engulfing).
+- ${isScalpMode ? 'TF M1' : 'TF M15'}: จุดเข้า Breakout & Retest หรือ Bounce จาก Key Level หา Entry M1, SL และ TP.`,
 
         ICT: `เน้นวิเคราะห์ Inner Circle Trader (ICT Methodology):
-- ${isScalpMode ? 'TF M15' : 'TF H4'}: Daily/M15 Bias, Liquidity Voids, Key Benchmark Levels.
-- ${isScalpMode ? 'TF M5' : 'TF H1'}: Power of 3 (AMD: Accumulation, Manipulation, Distribution), Judas Swing, Kill Zone setup, Fair Value Gap (FVG).
-- ${isScalpMode ? 'TF M1' : 'TF M15'}: Optimal Trade Entry (OTE - 61.8% to 79% Fibonacci retracement), Silver Bullet setup, Displacement Confirmation, Entry, SL, TP.`,
+- ${isScalpMode ? 'TF H4, H1, M30' : 'TF H4'}: Daily/H4 Bias, Liquidity Voids, Key Benchmark Levels.
+- ${isScalpMode ? 'TF M15, M5' : 'TF H1'}: Power of 3 (AMD: Accumulation, Manipulation, Distribution), Judas Swing, Kill Zone setup, Fair Value Gap (FVG).
+- ${isScalpMode ? 'TF M1' : 'TF M15'}: Optimal Trade Entry (OTE - 61.8% to 79% Fibonacci retracement), Silver Bullet setup, Displacement Confirmation, Entry M1, SL, TP.`,
 
         SUPPLY_DEMAND: `เน้นวิเคราะห์ Supply & Demand Imbalance:
-- ${isScalpMode ? 'TF M15' : 'TF H4'}: Fresh Supply & Demand Zones, Rally-Base-Drop (RBD), Drop-Base-Rally (DBR), Rally-Base-Rally (RBR), Drop-Base-Drop (DBD).
-- ${isScalpMode ? 'TF M5' : 'TF H1'}: Zone Quality Score (Freshness, Strength of Departure, Time at Base), Zone Flips.
-- ${isScalpMode ? 'TF M1' : 'TF M15'}: Confirmation Touch / Drop into Zone, Entry at Zone Margin, SL outside zone Buffer, TP at Next Opposing Zone.`,
+- ${isScalpMode ? 'TF H4, H1, M30' : 'TF H4'}: Fresh Supply & Demand Zones, Rally-Base-Drop (RBD), Drop-Base-Rally (DBR), Rally-Base-Rally (RBR), Drop-Base-Drop (DBD).
+- ${isScalpMode ? 'TF M15, M5' : 'TF H1'}: Zone Quality Score (Freshness, Strength of Departure, Time at Base), Zone Flips.
+- ${isScalpMode ? 'TF M1' : 'TF M15'}: Confirmation Touch / Drop into Zone M1, Entry at Zone Margin M1, SL outside zone Buffer, TP at Next Opposing Zone.`,
 
         BREAKOUT_TREND: `เน้นวิเคราะห์ Trend Following & Breakout Strategy:
-- ${isScalpMode ? 'TF M15' : 'TF H4'}: Directional Momentum, Moving Averages / Higher Highs.
-- ${isScalpMode ? 'TF M5' : 'TF H1'}: Compression / Consolidation Box, Key Resistance/Support Trigger line.
-- ${isScalpMode ? 'TF M1' : 'TF M15'}: High Volume Breakout Confirmation, Pullback Retest, Entry, SL, TP1, TP2, TP3.`,
+- ${isScalpMode ? 'TF H4, H1, M30' : 'TF H4'}: Directional Momentum, Moving Averages / Higher Highs.
+- ${isScalpMode ? 'TF M15, M5' : 'TF H1'}: Compression / Consolidation Box, Key Resistance/Support Trigger line.
+- ${isScalpMode ? 'TF M1' : 'TF M15'}: High Volume Breakout Confirmation M1, Pullback Retest M1, Entry, SL, TP1, TP2, TP3.`,
 
         HARMONIC: `เน้นวิเคราะห์ Harmonic & Fibonacci Patterns:
-- ${isScalpMode ? 'TF M15' : 'TF H4'}: Macro Trend & Fibonacci Retracement / Extension levels.
-- ${isScalpMode ? 'TF M5' : 'TF H1'}: Potential Reversal Zone (PRZ), Harmonic Patterns (Gartley, Bat, Butterfly, Crab, ABCD).
-- ${isScalpMode ? 'TF M1' : 'TF M15'}: Reversal Candle Confirmation at PRZ, Entry, SL (Beyond X), TP1 (38.2% Fib), TP2 (61.8% Fib).`
+- ${isScalpMode ? 'TF H4, H1, M30' : 'TF H4'}: Macro Trend & Fibonacci Retracement / Extension levels.
+- ${isScalpMode ? 'TF M15, M5' : 'TF H1'}: Potential Reversal Zone (PRZ), Harmonic Patterns (Gartley, Bat, Butterfly, Crab, ABCD).
+- ${isScalpMode ? 'TF M1' : 'TF M15'}: Reversal Candle Confirmation at PRZ M1, Entry M1, SL (Beyond X), TP1 (38.2% Fib), TP2 (61.8% Fib).`
       };
 
       const parts: any[] = [];
 
-      // Process Slot 1 image (H4 or M15) if available
+      // Process TF H4 image if available
       if (h4Image) {
         const matches = h4Image.match(/^data:(image\/[a-zA-Z]+);base64,(.+)$/);
         if (matches) {
           parts.push({
-            inlineData: {
-              mimeType: matches[1],
-              data: matches[2],
-            }
+            inlineData: { mimeType: matches[1], data: matches[2] }
           });
           parts.push({
-            text: isScalpMode
-              ? 'ภาพกราฟ Timeframe M15 (Macro Trend & Structure หลักสายซิ่ง):'
-              : 'ภาพกราฟ Timeframe H4 (Higher Timeframe / Structure & Bias):'
+            text: 'ภาพกราฟ Timeframe H4 (Macro Structure & Trend ใหญ่ภาพกว้าง):'
           });
         }
       }
 
-      // Process Slot 2 image (H1 or M5) if available
+      // Process TF H1 image if available
       if (h1Image) {
         const matches = h1Image.match(/^data:(image\/[a-zA-Z]+);base64,(.+)$/);
         if (matches) {
           parts.push({
-            inlineData: {
-              mimeType: matches[1],
-              data: matches[2],
-            }
+            inlineData: { mimeType: matches[1], data: matches[2] }
           });
           parts.push({
-            text: isScalpMode
-              ? 'ภาพกราฟ Timeframe M5 (Intermediate Pullback & Bounce Zone):'
-              : 'ภาพกราฟ Timeframe H1 (Intermediate Timeframe / Key Zones & FVG/Patterns):'
+            text: 'ภาพกราฟ Timeframe H1 (Primary Trend & Major Level):'
           });
         }
       }
 
-      // Process Slot 3 image (M15 or M1) if available
+      // Process TF M30 image if available
+      if (m30Image) {
+        const matches = m30Image.match(/^data:(image\/[a-zA-Z]+);base64,(.+)$/);
+        if (matches) {
+          parts.push({
+            inlineData: { mimeType: matches[1], data: matches[2] }
+          });
+          parts.push({
+            text: 'ภาพกราฟ Timeframe M30 (Key Supply / Demand Zone คุมราคา):'
+          });
+        }
+      }
+
+      // Process TF M15 image if available
       if (m15Image) {
         const matches = m15Image.match(/^data:(image\/[a-zA-Z]+);base64,(.+)$/);
         if (matches) {
           parts.push({
-            inlineData: {
-              mimeType: matches[1],
-              data: matches[2],
-            }
+            inlineData: { mimeType: matches[1], data: matches[2] }
           });
           parts.push({
-            text: isScalpMode
-              ? 'ภาพกราฟ Timeframe M1 (Precision Sniper Trigger M1 - คมกริบ โดนลากน้อย):'
-              : 'ภาพกราฟ Timeframe M15 (Lower Timeframe / Entry Trigger & Execution):'
+            text: 'ภาพกราฟ Timeframe M15 (Intermediate Pullback & Setup Zone):'
+          });
+        }
+      }
+
+      // Process TF M5 image if available
+      if (m5Image) {
+        const matches = m5Image.match(/^data:(image\/[a-zA-Z]+);base64,(.+)$/);
+        if (matches) {
+          parts.push({
+            inlineData: { mimeType: matches[1], data: matches[2] }
+          });
+          parts.push({
+            text: 'ภาพกราฟ Timeframe M5 (Micro Structure Trigger Zone):'
+          });
+        }
+      }
+
+      // Process TF M1 image if available
+      if (m1Image) {
+        const matches = m1Image.match(/^data:(image\/[a-zA-Z]+);base64,(.+)$/);
+        if (matches) {
+          parts.push({
+            inlineData: { mimeType: matches[1], data: matches[2] }
+          });
+          parts.push({
+            text: 'ภาพกราฟ Timeframe M1 (Precision Sniper Trigger M1 - จุดเข้าเทรดสไนเปอร์ คมกริบ โดนลากน้อย):'
           });
         }
       }
 
       const modeHeaderPrompt = isScalpMode
-        ? `คุณกำลังวิเคราะห์ใน "โหมดเทรดสายซิ่ง (Fast Scalping / Speed Trading Mode)" บน 3 Timeframe (M15, M5, M1)
-- หลักการวิเคราะห์: เน้นเข้าเทรดตามเทรนด์หลัก (Trend-Following Price Bounce) ณ จุดเด้งของราคา
-- ค้นหาราคาที่ดีที่สุด (Best Precision Entry) บน Timeframe M1
-- คำนวณจุด Stop Loss ให้แคบที่สุดเพื่อ "โดนลากน้อยที่สุด (Minimal Drawdown)"
-- เน้นอัตรากำไรเยอะ Risk-to-Reward Ratio (R:R) สูง
+        ? `คุณกำลังวิเคราะห์ใน "โหมดเทรดสายซิ่ง (Fast Scalping / Speed Trading Mode)" บน Multi-Timeframe ครบทุก 6 กรอบเวลา (H4, H1, M30, M15, M5, M1)
+- หลักการวิเคราะห์: ต้องเช็คภาพรวมภาพกว้างจาก Timeframe ใหญ่ H4, H1 และ M30 ก่อนเสมอ เพื่อดักจับ Major Trend / Structure & Key Supply-Demand Zone คุมไว้ เพิ่มความแม่นยำสูงสุดและป้องกันการโดนหลอกสวนเทรนด์
+- วิเคราะห์จุดย่อเด้ง (Pullback & Setup Zone) บน M15 และ M5
+- ค้นหาจุดเข้าเทรดที่คมกริบที่สุดใน Timeframe M1 (Sniper Entry M1) เพื่อคำนวณจุด Stop Loss ให้แคบที่สุด โดนลากน้อยที่สุด (Minimal Drawdown) และได้อัตราส่วน Risk-to-Reward (R:R) สูงสุด
 - สแกนดูจุดเด้ง Rejection Spike / Micro ChoCH / M1 Order Block / M1 FVG`
         : `คุณกำลังวิเคราะห์ในโหมดมาตรฐาน Multi-timeframe (H4, H1, M15)`;
 
@@ -776,8 +799,8 @@ ${customNotes ? `คำแนะนำเพิ่มเติมจากผู
 1. วิเคราะห์ราคาและแนวโน้มจากกราฟในรูปอย่างสมจริง แม่นยำ
 2. ตรวจหาตัวย่อ/ชื่อคู่เงิน (เช่น XAUUSD, EURUSD, BTCUSD) จากรูปภาพ ถ้าไม่มีให้ระบุประเภทสินทรัพย์ตามทรงกราฟ
 3. ประเมินว่าสัญญาณเทรดเป็น "BUY", "SELL" หรือ "NO_TRADE" (ถ้าโครงสร้างราคาไม่ชัดเจนหรือเสี่ยงสูงเกินไป ให้ตอบ NO_TRADE)
-4. คำนวณจุด Entry, SL, TP1, TP2, TP3 และ Risk:Reward Ratio (R:R) ที่แม่นยำ สมเหตุสมผลตามโครงสร้างราคาจริงในภาพ ${isScalpMode ? '(สำหรับสายซิ่ง เน้น SL แคบ โดนลากน้อย R:R สูง)' : ''}
-5. สร้าง "ตารางสรุปเงื่อนไขและเหตุผลประกอบการตัดสินใจ" (Summary Conditions) ให้เป็นขั้นตอน เช่น Alignment ${isScalpMode ? 'M15->M5' : 'H4->H1'}, Liquidity Sweep, FVG Fill, Entry Trigger ${isScalpMode ? 'M1' : 'M15'}
+4. คำนวณจุด Entry, SL, TP1, TP2, TP3 และ Risk:Reward Ratio (R:R) ที่แม่นยำ สมเหตุสมผลตามโครงสร้างราคาจริงในภาพ ${isScalpMode ? '(สำหรับสายซิ่ง เน้นอิงกรอบ H4/M30 เพื่อความแม่นยำ แล้วเลือกจุดเข้า M1 ที่ SL แคบ โดนลากน้อย R:R สูง)' : ''}
+5. สร้าง "ตารางสรุปเงื่อนไขและเหตุผลประกอบการตัดสินใจ" (Summary Conditions) ให้เป็นขั้นตอน เช่น Alignment ${isScalpMode ? 'H4/M30 -> M15/M5' : 'H4 -> H1'}, Liquidity Sweep, FVG Fill, Entry Trigger ${isScalpMode ? 'M1' : 'M15'}
 6. ระบุจุด invalidationScenario (เมื่อไหร่ที่แผนเทรดนี้จะยกเลิก) และ tradeManagement (การบริหารออเดอร์ เช่น เลื่อน SL มา BE เมื่อถึง TP1)
 7. ประมาณค่าตำแหน่ง visual overlay (0-100%) บนภาพกราฟ ${isScalpMode ? 'M1' : 'M15'} เพื่อนำไปวาดเส้น Entry (เขียว), SL (แดง), TP (ฟ้า) และกล่อง Order Block / FVG บนหน้าจอให้ผู้ใช้เห็นชัดเจน
 
@@ -797,7 +820,7 @@ ${customNotes ? `คำแนะนำเพิ่มเติมจากผู
             items: {
               type: Type.OBJECT,
               properties: {
-                timeframe: { type: Type.STRING, description: isScalpMode ? 'M15, M5, หรือ M1' : 'H4, H1, หรือ M15' },
+                timeframe: { type: Type.STRING, description: isScalpMode ? 'H4, M30, M15, M5, หรือ M1' : 'H4, H1, หรือ M15' },
                 trend: { type: Type.STRING, description: 'Bullish, Bearish, หรือ Sideways / Ranging' },
                 summary: { type: Type.STRING, description: 'คำอธิบายโครงสร้างราคาใน TF นี้' },
                 keyLevel: { type: Type.STRING, description: 'ระดับราคาสำคัญใน TF นี้' },
@@ -1111,6 +1134,10 @@ ${customNotes ? `คำแนะนำเพิ่มเติมจากผู
         orderType,
         timeframe,
         entryPrice,
+        currentPrice,
+        stopLoss,
+        takeProfit,
+        notes,
         chartImageBase64: chartImage,
         ...auditData
       };
@@ -1124,6 +1151,244 @@ ${customNotes ? `คำแนะนำเพิ่มเติมจากผู
       });
     }
   });
+
+  // Interactive Position Audit Consultation Chat Endpoint
+  app.post('/api/audit-consult', async (req, res) => {
+    try {
+      const { question, history = [], positionInfo = {}, chartImageBase64, customApiKey } = req.body || {};
+
+      const effectiveKey = (customApiKey && customApiKey.trim()) || process.env.GEMINI_API_KEY;
+      if (!effectiveKey) {
+        return res.status(400).json({
+          error: 'กรุณากรอก Google Gemini API Key ในช่องตั้งค่า หรือใช้งานผ่านระบบที่กำหนด'
+        });
+      }
+
+      if (!question || !question.trim()) {
+        return res.status(400).json({ error: 'กรุณาระบุคำถามที่ต้องการปรึกษา' });
+      }
+
+      const parts: any[] = [];
+
+      // Include chart image if present
+      if (chartImageBase64) {
+        const matches = chartImageBase64.match(/^data:(image\/[a-zA-Z]+);base64,(.+)$/);
+        if (matches) {
+          parts.push({
+            inlineData: { mimeType: matches[1], data: matches[2] }
+          });
+        }
+      }
+
+      // System context
+      const systemPrompt = `คุณคือ AI Senior Trader & Risk Management Advisor (โค้ช/ที่ปรึกษาเทรดเดอร์มืออาชีพ) ที่มีความเชี่ยวชาญด้านสภาวะตลาด การบริหารความเสี่ยง และจิตวิทยาการเทรด 
+ขณะนี้คุณกำลังตอบคำถามให้คำปรึกษาแก่เทรดเดอร์เกี่ยวกับ "ออเดอร์ที่เขากำลังเปิดอยู่ปัจจุบัน (Active Position)"
+
+ข้อมูลออเดอร์ของผู้เทรด (Active Position Context):
+- สินทรัพย์/คู่เงิน: ${positionInfo.symbol || 'N/A'}
+- ประเภทออเดอร์: ${positionInfo.orderType || 'N/A'} (Entry: ${positionInfo.entryPrice || 'ไม่ระบุ'}, Current: ${positionInfo.currentPrice || 'ไม่ระบุ'})
+- Timeframe: ${positionInfo.timeframe || 'N/A'}
+- Stop Loss: ${positionInfo.stopLoss || 'ไม่ระบุ'}, Take Profit: ${positionInfo.takeProfit || 'ไม่ระบุ'}
+- หมายเหตุ/เหตุผลที่เข้า: ${positionInfo.notes || 'ไม่มี'}
+
+ผลการประเมินจาก AI ล่าสุด:
+- ผลลัพธ์: ${positionInfo.recommendationTitle || positionInfo.recommendation || ''}
+- คะแนนจุดเข้า: ${positionInfo.qualityScore || '-'}/100
+- สรุปสภาวะกราฟ: ${positionInfo.structureAnalysis || ''}
+- ข้อควรระวัง: ${Array.isArray(positionInfo.cautionPoints) ? positionInfo.cautionPoints.join('; ') : ''}
+- คำแนะนำการจัดการ: ${positionInfo.managementAdvice || ''}
+
+แนวทางการตอบคำถาม:
+1. ตอบด้วยความเป็นกันเอง เป็นผู้รู้ที่หวังดี ตรงประเด็น สั้นกระชับเข้าใจง่าย
+2. ให้คำแนะนำเชิงการปฏิบัติจริง เช่น การปรับจุด SL มาบังทุน (Breakeven), การแบ่งปิดทำกำไร (Partial Close), การรับมือกับข่าวผันผวน หรือการจัดการความเสี่ยงตามหลัก Risk-to-Reward
+3. หากผู้ใช้ถามสถานการณ์สมมติ ให้วิเคราะห์ทางเลือกที่ดีที่สุดตามโครงสร้างราคาจริงบนกราฟ
+4. ใช้ภาษาไทย สุภาพ และเสริมสร้างความมั่นใจอย่างมีสติ`;
+
+      parts.push({ text: systemPrompt });
+
+      // Add conversation history
+      if (Array.isArray(history) && history.length > 0) {
+        let historyStr = '\nประวัติการสนทนาก่อนหน้านี้:\n';
+        for (const msg of history) {
+          historyStr += `${msg.role === 'user' ? 'ผู้ใช้' : 'AI Advisor'}: ${msg.content}\n`;
+        }
+        parts.push({ text: historyStr });
+      }
+
+      parts.push({ text: `\nคำถามล่าสุดจากผู้ใช้: "${question.trim()}"\n\nโปรดตอบคำถามนี้ในฐานะ AI Trade Advisor:` });
+
+      const ai = getAi(customApiKey);
+      let resultText = '';
+
+      try {
+        const response = await ai.models.generateContent({
+          model: 'gemini-3.6-flash',
+          contents: { parts },
+          config: {
+            temperature: 0.4,
+          }
+        });
+        resultText = response.text || '';
+      } catch (errPrimary: any) {
+        console.warn('Primary model error in audit-consult, using fallback:', errPrimary?.message);
+        const response = await ai.models.generateContent({
+          model: 'gemini-flash-latest',
+          contents: { parts },
+          config: {
+            temperature: 0.4,
+          }
+        });
+        resultText = response.text || '';
+      }
+
+      if (!resultText) {
+        throw new Error('ไม่ได้รับคำตอบจาก AI Advisor');
+      }
+
+      res.json({ reply: resultText });
+
+    } catch (err: any) {
+      console.error('Error in audit consult endpoint:', err);
+      res.status(400).json({
+        error: err.message || 'เกิดข้อผิดพลาดในการรับคำตอบจาก AI Advisor'
+      });
+    }
+  });
+
+  // Daily Market Analysis & Bias Endpoint
+  app.post('/api/daily-analysis', async (req, res) => {
+    try {
+      const { symbol = 'XAU/USD (Gold)', chartImageBase64, customNotes = '', customApiKey } = req.body || {};
+
+      const effectiveKey = (customApiKey && customApiKey.trim()) || process.env.GEMINI_API_KEY;
+      if (!effectiveKey) {
+        return res.status(400).json({
+          error: 'กรุณากรอก Google Gemini API Key ในช่องตั้งค่า หรือใช้งานผ่านระบบที่กำหนด'
+        });
+      }
+
+      const parts: any[] = [];
+
+      // Include chart image if uploaded
+      if (chartImageBase64) {
+        const matches = chartImageBase64.match(/^data:(image\/[a-zA-Z]+);base64,(.+)$/);
+        if (matches) {
+          parts.push({
+            inlineData: { mimeType: matches[1], data: matches[2] }
+          });
+        }
+      }
+
+      const prompt = `คุณคือ AI Head Trader & Market Strategist ประจำสถาบันการเงินระดับโลก 
+ทำหน้าที่วิเคราะห์สภาวะตลาดประจำวัน (Daily Market Regime & Advantage Analysis) สำหรับสินทรัพย์: "${symbol}"
+${customNotes ? `หมายเหตุเพิ่มเติมจากเทรดเดอร์: "${customNotes}"` : ''}
+
+เป้าหมายสำคัญ:
+1. ประเมินว่าตลาดกำลังอยู่ในสภาวะใด:
+   - 'STRONG_UPTREND' (เทรนด์ขาขึ้นแข็งแกร่ง)
+   - 'STRONG_DOWNTREND' (เทรนด์ขาลงแข็งแกร่ง)
+   - 'SIDEWAYS_RANGE' (ไซด์เวย์ในกรอบสะสมราคา / Ranging Box)
+   - 'SIDEWAYS_VOLATILE' (ไซด์เวย์ผันผวนสูง / Choppy Expansion)
+   - 'BREAKOUT_PENDING' (กำลังอัดตัวรอการระเบิด Breakout)
+
+2. ประเมินว่าการเปิดออเดอร์ฝั่งไหนที่จะได้เปรียบตลาดมากที่สุดในวันนี้ (Statistical Advantage):
+   - 'BUY_ADVANTAGE' (ฝั่ง BUY ได้เปรียบสูง เน้นย่อ BUY ตามเทรนด์)
+   - 'SELL_ADVANTAGE' (ฝั่ง SELL ได้เปรียบสูง เน้นเด้ง SELL ตามเทรนด์)
+   - 'WAIT_SIDEWAYS' (ตลาดไซด์เวย์ไร้ทิศทาง แนะนำชะลอการเทรดหรือรอเบรกกรอบ)
+   - 'BOTH_SIDES_RANGE' (เล่นได้ทั้งสองฝั่งตามกรอบแนวรับ-แนวต้าน ไซด์เวย์ชัดเจน)
+
+3. ระบุแนวรับสำคัญ (Demand / Support Zones) และแนวต้านสำคัญ (Supply / Resistance Zones) ประจำวัน
+4. วางแผนการเทรดประจำวัน (Daily Trade Plan) ทั้งแผน BUY, แผน SELL และเงื่อนไขที่ไม่ควรเข้าเทรด (No-Trade Rule)
+
+โปรดตอบกลับเป็น JSON บริสุทธิ์เท่านั้น (Pure JSON) ในโครงสร้างดังต่อไปนี้:
+{
+  "marketCondition": "STRONG_UPTREND" | "STRONG_DOWNTREND" | "SIDEWAYS_RANGE" | "SIDEWAYS_VOLATILE" | "BREAKOUT_PENDING",
+  "marketConditionTitle": "ชื่อสภาวะตลาดภาษาไทย เช่น เทรนด์ขาขึ้นแข็งแกร่ง (Strong Uptrend)",
+  "preferredSide": "BUY_ADVANTAGE" | "SELL_ADVANTAGE" | "WAIT_SIDEWAYS" | "BOTH_SIDES_RANGE",
+  "preferredSideTitle": "หัวข้อฝั่งที่ได้เปรียบภาษาไทย เช่น ฝั่ง BUY ได้เปรียบสูง (Bullish Advantage)",
+  "advantageSummary": "คำอธิบายละเอียดว่าทำไมฝั่งนี้ถึงได้เปรียบ สภาวะโครงสร้างราคาปัจจุบัน โครงสร้าง HH/HL หรือ LH/LL และแรงซื้อขายในตลาด",
+  "keyLevels": {
+    "resistanceZones": ["แนวต้าน 1 / Supply Zone 1", "แนวต้าน 2 / Major Supply"],
+    "supportZones": ["แนวรับ 1 / Demand Zone 1", "แนวรับ 2 / Major Demand"],
+    "pivotPoint": "ระดับราคา Pivot / จุดเปลี่ยนฝั่งได้เปรียบ"
+  },
+  "dailyStrategy": "สรุปกลยุทธ์การเทรดประจำวันที่ได้เปรียบที่สุด เช่น รอย่อทดสอบ Demand Zone M15/H1 แล้วหาจังหวะ BUY",
+  "riskFactors": [
+    "ปัจจัยความเสี่ยงที่ 1 เช่น ข่าวตัวเลขเศรษฐกิจผันผวนช่วงค่ำ",
+    "ปัจจัยความเสี่ยงที่ 2"
+  ],
+  "tradingPlan": {
+    "buyPlan": "แผนการเข้า BUY: ถ้าราคาถอยมาบริเวณ ... แล้วเกิดสัญญาณกลับตัว ให้เข้า BUY เป้าหมายที่ ...",
+    "sellPlan": "แผนการเข้า SELL: ถ้าราคาปรับขึ้นไปทดสอบ ... แล้วปฏิเสธราคา ให้ SELL เป้าหมายที่ ...",
+    "noTradeCondition": "เงื่อนไขการงดเทรด: เช่น หากราคาหลุดแนวรับ ... หรือช่วงก่อนข่าวออก 15 นาที"
+  }
+}`;
+
+      parts.push({ text: prompt });
+
+      const ai = getAi(customApiKey);
+      let jsonText = '';
+
+      try {
+        const response = await ai.models.generateContent({
+          model: 'gemini-3.6-flash',
+          contents: { parts },
+          config: {
+            temperature: 0.2,
+            responseMimeType: 'application/json',
+          }
+        });
+        jsonText = response.text || '';
+      } catch (errPrimary: any) {
+        console.warn('Primary model error in daily-analysis, trying fallback:', errPrimary?.message);
+        const response = await ai.models.generateContent({
+          model: 'gemini-flash-latest',
+          contents: { parts },
+          config: {
+            temperature: 0.2,
+            responseMimeType: 'application/json',
+          }
+        });
+        jsonText = response.text || '';
+      }
+
+      // Clean JSON formatting
+      jsonText = jsonText.replace(/```json/g, '').replace(/```/g, '').trim();
+      const parsedData = JSON.parse(jsonText);
+
+      const resultData = {
+        id: 'daily_' + Date.now(),
+        timestamp: new Date().toISOString(),
+        symbol,
+        marketCondition: parsedData.marketCondition || 'SIDEWAYS_RANGE',
+        marketConditionTitle: parsedData.marketConditionTitle || 'สภาวะตลาดไซด์เวย์',
+        preferredSide: parsedData.preferredSide || 'WAIT_SIDEWAYS',
+        preferredSideTitle: parsedData.preferredSideTitle || 'รอความชัดเจนของสภาวะตลาด',
+        advantageSummary: parsedData.advantageSummary || 'ตลาดกำลังอยู่ในช่วงปรับฐาน รอการยืนยันโครงสร้าง',
+        keyLevels: {
+          resistanceZones: Array.isArray(parsedData.keyLevels?.resistanceZones) ? parsedData.keyLevels.resistanceZones : [],
+          supportZones: Array.isArray(parsedData.keyLevels?.supportZones) ? parsedData.keyLevels.supportZones : [],
+          pivotPoint: parsedData.keyLevels?.pivotPoint || 'N/A'
+        },
+        dailyStrategy: parsedData.dailyStrategy || 'เน้นการตั้งรับบริเวณกรอบแนวรับแนวต้านสำคัญ',
+        riskFactors: Array.isArray(parsedData.riskFactors) ? parsedData.riskFactors : [],
+        tradingPlan: {
+          buyPlan: parsedData.tradingPlan?.buyPlan || '',
+          sellPlan: parsedData.tradingPlan?.sellPlan || '',
+          noTradeCondition: parsedData.tradingPlan?.noTradeCondition || ''
+        }
+      };
+
+      res.json(resultData);
+
+    } catch (err: any) {
+      console.error('Error in daily analysis endpoint:', err);
+      res.status(500).json({
+        error: err.message || 'เกิดข้อผิดพลาดในการวิเคราะห์สภาวะตลาดประจำวัน'
+      });
+    }
+  });
+
 
   // Global Express Error Handler
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

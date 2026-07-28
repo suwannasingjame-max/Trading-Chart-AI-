@@ -8,7 +8,7 @@ interface AnnotatedChartViewerProps {
 
 export const AnnotatedChartViewer: React.FC<AnnotatedChartViewerProps> = ({ result }) => {
   const isScalp = result.analysisMode === 'SCALPING';
-  const tfList = isScalp ? ['M1', 'M5', 'M15'] : ['M15', 'H1', 'H4'];
+  const tfList = isScalp ? ['M1', 'M5', 'M15', 'M30', 'H1', 'H4'] : ['M15', 'H1', 'H4'];
 
   const [selectedTF, setSelectedTF] = useState<string>(isScalp ? 'M1' : 'M15');
   const [showOverlays, setShowOverlays] = useState(true);
@@ -28,18 +28,18 @@ export const AnnotatedChartViewer: React.FC<AnnotatedChartViewerProps> = ({ resu
 
   const { images, overlayCoords, tradeSetup, signal } = result;
 
-  // Determine active chart image based on mode
-  let activeImage = images.m15Image; // default trigger slot
-  if (isScalp) {
-    if (selectedTF === 'M1' && images.m15Image) activeImage = images.m15Image;
-    if (selectedTF === 'M5' && images.h1Image) activeImage = images.h1Image;
-    if (selectedTF === 'M15' && images.h4Image) activeImage = images.h4Image;
-  } else {
-    if (selectedTF === 'M15' && images.m15Image) activeImage = images.m15Image;
-    if (selectedTF === 'H1' && images.h1Image) activeImage = images.h1Image;
-    if (selectedTF === 'H4' && images.h4Image) activeImage = images.h4Image;
+  // Determine active chart image based on selectedTF
+  let activeImage: string | null | undefined = null;
+  if (selectedTF === 'M1') activeImage = images.m1Image || images.m15Image;
+  else if (selectedTF === 'M5') activeImage = images.m5Image || images.h1Image;
+  else if (selectedTF === 'M15') activeImage = images.m15Image || images.h4Image;
+  else if (selectedTF === 'M30') activeImage = images.m30Image;
+  else if (selectedTF === 'H1') activeImage = images.h1Image;
+  else if (selectedTF === 'H4') activeImage = images.h4Image;
+
+  if (!activeImage) {
+    activeImage = images.m1Image || images.m5Image || images.m15Image || images.m30Image || images.h1Image || images.h4Image;
   }
-  if (!activeImage) activeImage = images.m15Image || images.h1Image || images.h4Image;
 
   // Defaults for overlays if Gemini provided percentages
   const entryY = overlayCoords?.entryYPercent ?? 50;

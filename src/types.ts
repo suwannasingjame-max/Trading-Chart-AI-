@@ -1,6 +1,6 @@
-export type TimeframeKey = 'H4' | 'H1' | 'M15' | 'M5' | 'M1';
+export type TimeframeKey = 'H4' | 'H1' | 'M30' | 'M15' | 'M5' | 'M1';
 
-export type AnalysisMode = 'STANDARD' | 'SCALPING'; // STANDARD: H4-H1-M15 | SCALPING: M15-M5-M1
+export type AnalysisMode = 'STANDARD' | 'SCALPING'; // STANDARD: H4-H1-M15 | SCALPING: H4-H1-M30-M15-M5-M1 (Entry M1)
 
 export type StrategyType = 
   | 'SMC' // Smart Money Concepts
@@ -11,9 +11,12 @@ export type StrategyType =
   | 'HARMONIC'; // Harmonic Patterns & Fibonacci
 
 export interface ChartImageInput {
-  h4Image: string | null; // Slot 1: H4 in STANDARD mode, M15 in SCALPING mode
-  h1Image: string | null; // Slot 2: H1 in STANDARD mode, M5 in SCALPING mode
-  m15Image: string | null; // Slot 3: M15 in STANDARD mode, M1 in SCALPING mode
+  h4Image: string | null;   // TF H4
+  h1Image: string | null;   // TF H1
+  m30Image?: string | null; // TF M30
+  m15Image: string | null;  // TF M15
+  m5Image?: string | null;  // TF M5
+  m1Image?: string | null;  // TF M1
 }
 
 export type SignalType = 'BUY' | 'SELL' | 'NO_TRADE';
@@ -183,6 +186,10 @@ export interface PositionAuditResult {
   orderType: 'BUY' | 'SELL';
   timeframe: string;
   entryPrice?: string;
+  currentPrice?: string;
+  stopLoss?: string;
+  takeProfit?: string;
+  notes?: string;
   recommendation: AuditRecommendation; // 'HOLD' | 'PARTIAL_CLOSE' | 'CLOSE_NOW'
   recommendationTitle: string;
   recommendationSummary: string;
@@ -196,5 +203,52 @@ export interface PositionAuditResult {
     trailingStopPips?: string;
   };
   chartImageBase64?: string;
+}
+
+export interface AuditChatMessage {
+  id: string;
+  sender: 'user' | 'ai';
+  text: string;
+  timestamp: string;
+}
+
+export interface AuditConsultRequest {
+  question: string;
+  history?: { role: 'user' | 'assistant'; content: string }[];
+  positionInfo: Partial<PositionAuditResult>;
+  chartImageBase64?: string;
+}
+
+// Daily Market Analysis & Bias Types
+export type MarketConditionType = 'STRONG_UPTREND' | 'STRONG_DOWNTREND' | 'SIDEWAYS_RANGE' | 'SIDEWAYS_VOLATILE' | 'BREAKOUT_PENDING';
+export type PreferredSideType = 'BUY_ADVANTAGE' | 'SELL_ADVANTAGE' | 'WAIT_SIDEWAYS' | 'BOTH_SIDES_RANGE';
+
+export interface DailyMarketAnalysisRequest {
+  symbol: string;
+  chartImageBase64?: string;
+  customNotes?: string;
+}
+
+export interface DailyMarketAnalysisResult {
+  id: string;
+  timestamp: string;
+  symbol: string;
+  marketCondition: MarketConditionType;
+  marketConditionTitle: string;
+  preferredSide: PreferredSideType;
+  preferredSideTitle: string;
+  advantageSummary: string;
+  keyLevels: {
+    resistanceZones: string[];
+    supportZones: string[];
+    pivotPoint?: string;
+  };
+  dailyStrategy: string;
+  riskFactors: string[];
+  tradingPlan: {
+    buyPlan?: string;
+    sellPlan?: string;
+    noTradeCondition?: string;
+  };
 }
 

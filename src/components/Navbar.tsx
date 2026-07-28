@@ -1,6 +1,6 @@
 import React from 'react';
 import { UserProfile } from '../types';
-import { TrendingUp, History, Sparkles, HelpCircle, User, BarChart2 } from 'lucide-react';
+import { TrendingUp, History, Sparkles, HelpCircle, User, BarChart2, Compass } from 'lucide-react';
 
 interface NavbarProps {
   onOpenHistory: () => void;
@@ -9,6 +9,7 @@ interface NavbarProps {
   onOpenAdmin: () => void;
   onOpenEaStore: () => void;
   onOpenPositionAudit: () => void;
+  onOpenDailyAnalysis: () => void;
   historyCount: number;
   user: UserProfile;
 }
@@ -20,6 +21,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenAdmin,
   onOpenEaStore,
   onOpenPositionAudit,
+  onOpenDailyAnalysis,
   historyCount,
   user,
 }) => {
@@ -54,6 +56,17 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Daily Market Analysis Button */}
+          <button
+            onClick={onOpenDailyAnalysis}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-cyan-500/20 hover:from-emerald-500/30 hover:to-cyan-500/30 text-emerald-300 font-bold text-xs transition border border-emerald-500/40 shadow-sm"
+            title="วิเคราะห์สภาวะตลาดประจำวัน & หน้าเทรดที่ได้เปรียบ"
+          >
+            <Compass className="w-4 h-4 text-emerald-400" />
+            <span className="hidden sm:inline">สภาวะตลาดประจำวัน</span>
+            <span className="sm:hidden">สภาวะตลาด</span>
+          </button>
+
           {/* Active Order Audit Button */}
           <button
             onClick={onOpenPositionAudit}
@@ -61,11 +74,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             title="วิเคราะห์ออเดอร์ที่เปิดอยู่"
           >
             <BarChart2 className="w-4 h-4 text-cyan-400" />
-            <span className="inline">วิเคราะห์ออเดอร์ที่เข้า</span>
-            <span className="px-1.5 py-0.2 text-[9px] font-black rounded-full bg-cyan-500 text-slate-950">
-              NEW
-            </span>
+            <span className="hidden sm:inline">วิเคราะห์ออเดอร์</span>
+            <span className="sm:hidden">วิเคราะห์ออเดอร์</span>
           </button>
+
 
           {/* History Button */}
           <button
