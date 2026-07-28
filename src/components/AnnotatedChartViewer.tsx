@@ -7,7 +7,10 @@ interface AnnotatedChartViewerProps {
 }
 
 export const AnnotatedChartViewer: React.FC<AnnotatedChartViewerProps> = ({ result }) => {
-  const [selectedTF, setSelectedTF] = useState<'M15' | 'H1' | 'H4'>('M15');
+  const isScalp = result.analysisMode === 'SCALPING';
+  const tfList = isScalp ? ['M1', 'M5', 'M15'] : ['M15', 'H1', 'H4'];
+
+  const [selectedTF, setSelectedTF] = useState<string>(isScalp ? 'M1' : 'M15');
   const [showOverlays, setShowOverlays] = useState(true);
   const [showKeyZones, setShowKeyZones] = useState(true);
   const [interactiveSL, setInteractiveSL] = useState<number>(result.tradeSetup.stopLossValue);
@@ -20,14 +23,22 @@ export const AnnotatedChartViewer: React.FC<AnnotatedChartViewerProps> = ({ resu
   useEffect(() => {
     setInteractiveSL(result.tradeSetup.stopLossValue);
     setInteractiveTP(result.tradeSetup.takeProfit2Value);
+    setSelectedTF(result.analysisMode === 'SCALPING' ? 'M1' : 'M15');
   }, [result]);
 
   const { images, overlayCoords, tradeSetup, signal } = result;
 
-  // Determine active chart image
-  let activeImage = images.m15Image;
-  if (selectedTF === 'H1' && images.h1Image) activeImage = images.h1Image;
-  if (selectedTF === 'H4' && images.h4Image) activeImage = images.h4Image;
+  // Determine active chart image based on mode
+  let activeImage = images.m15Image; // default trigger slot
+  if (isScalp) {
+    if (selectedTF === 'M1' && images.m15Image) activeImage = images.m15Image;
+    if (selectedTF === 'M5' && images.h1Image) activeImage = images.h1Image;
+    if (selectedTF === 'M15' && images.h4Image) activeImage = images.h4Image;
+  } else {
+    if (selectedTF === 'M15' && images.m15Image) activeImage = images.m15Image;
+    if (selectedTF === 'H1' && images.h1Image) activeImage = images.h1Image;
+    if (selectedTF === 'H4' && images.h4Image) activeImage = images.h4Image;
+  }
   if (!activeImage) activeImage = images.m15Image || images.h1Image || images.h4Image;
 
   // Defaults for overlays if Gemini provided percentages

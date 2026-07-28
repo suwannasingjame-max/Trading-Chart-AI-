@@ -1,4 +1,6 @@
-export type TimeframeKey = 'H4' | 'H1' | 'M15';
+export type TimeframeKey = 'H4' | 'H1' | 'M15' | 'M5' | 'M1';
+
+export type AnalysisMode = 'STANDARD' | 'SCALPING'; // STANDARD: H4-H1-M15 | SCALPING: M15-M5-M1
 
 export type StrategyType = 
   | 'SMC' // Smart Money Concepts
@@ -9,9 +11,9 @@ export type StrategyType =
   | 'HARMONIC'; // Harmonic Patterns & Fibonacci
 
 export interface ChartImageInput {
-  h4Image: string | null; // base64 or data URL
-  h1Image: string | null;
-  m15Image: string | null;
+  h4Image: string | null; // Slot 1: H4 in STANDARD mode, M15 in SCALPING mode
+  h1Image: string | null; // Slot 2: H1 in STANDARD mode, M5 in SCALPING mode
+  m15Image: string | null; // Slot 3: M15 in STANDARD mode, M1 in SCALPING mode
 }
 
 export type SignalType = 'BUY' | 'SELL' | 'NO_TRADE';
@@ -86,6 +88,7 @@ export interface AnalysisResult {
   tradeManagement: string; // E.g. Move SL to BE at TP1
   overlayCoords?: ChartOverlayCoordinates;
   images: ChartImageInput;
+  analysisMode?: AnalysisMode;
 }
 
 export interface SampleChartPreset {

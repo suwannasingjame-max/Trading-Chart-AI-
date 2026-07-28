@@ -166,3 +166,36 @@ export const SAMPLE_PRESETS: SamplePreset[] = [
     m15DataUrl: generateCandlestickChartSvg('Refined Demand Zone Retest', 'M15', 'BTCUSD', 'bull'),
   },
 ];
+
+export const SCALPING_SAMPLE_PRESETS: SamplePreset[] = [
+  {
+    id: 'gold_m1_scalp',
+    name: '⚡ XAUUSD - M1 Scalper Bounce Setup',
+    symbol: 'XAU/USD (M1 Scalp)',
+    strategy: 'SMC',
+    description: 'สายซิ่งทองคำ: M15 เทรดตาม Trend ขาขึ้น, M5 ย่อลงมาแตะโซนเด้ง Demand, M1 เกิด Rejection Spike & Micro ChoCH เข้าเทรด SL แคบมาก',
+    h4DataUrl: generateCandlestickChartSvg('M15 Macro Trend Bias', 'M15', 'XAUUSD', 'bull'),
+    h1DataUrl: generateCandlestickChartSvg('M5 Demand Bounce Zone', 'M5', 'XAUUSD', 'bull'),
+    m15DataUrl: generateCandlestickChartSvg('M1 Sniper Entry Trigger', 'M1', 'XAUUSD', 'bull'),
+  },
+  {
+    id: 'eurusd_m1_scalp',
+    name: '⚡ EURUSD - M1 Scalper Trend Bounce Sell',
+    symbol: 'EUR/USD (M1 Scalp)',
+    strategy: 'SMC',
+    description: 'สายซิ่ง EURUSD: M15 เป็น Trend ขาลงชัดเจน, M5 เด้งทดสอบ Bearish Order Block, M1 เกิด Micro ChoCH ทะลุ FVG เข้า SELL ทันที SL สั้น',
+    h4DataUrl: generateCandlestickChartSvg('M15 Macro Trend Bias', 'M15', 'EURUSD', 'bear'),
+    h1DataUrl: generateCandlestickChartSvg('M5 Supply Rejection Zone', 'M5', 'EURUSD', 'bear'),
+    m15DataUrl: generateCandlestickChartSvg('M1 Sniper Entry Trigger', 'M1', 'EURUSD', 'bear'),
+  },
+  {
+    id: 'btcusd_m1_scalp',
+    name: '⚡ BTCUSD - M1 Scalper High-RR Setup',
+    symbol: 'BTC/USD (M1 Scalp)',
+    strategy: 'SMC',
+    description: 'สายซิ่ง Bitcoin: M15 เกิดการกวาด Liquidity, M5 สร้าง FVG Demand, M1 ย่อแตะขอบ FVG เกิด Wick Rejection เข้า Buy R:R สูงถึง 1:4',
+    h4DataUrl: generateCandlestickChartSvg('M15 Macro Trend Bias', 'M15', 'BTCUSD', 'bull'),
+    h1DataUrl: generateCandlestickChartSvg('M5 FVG Bounce Level', 'M5', 'BTCUSD', 'bull'),
+    m15DataUrl: generateCandlestickChartSvg('M1 Micro ChoCH Entry', 'M1', 'BTCUSD', 'bull'),
+  },
+];

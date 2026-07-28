@@ -1,12 +1,14 @@
 import React, { useRef, useState } from 'react';
-import { ChartImageInput, StrategyType } from '../types';
-import { SAMPLE_PRESETS, SamplePreset } from '../data/samplePresets';
-import { Upload, Image as ImageIcon, Trash2, Eye, Sparkles, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { ChartImageInput, AnalysisMode } from '../types';
+import { SAMPLE_PRESETS, SCALPING_SAMPLE_PRESETS, SamplePreset } from '../data/samplePresets';
+import { Upload, Image as ImageIcon, Trash2, Eye, Sparkles, CheckCircle2, Zap, Target } from 'lucide-react';
 
 interface ChartUploaderProps {
   images: ChartImageInput;
   onChangeImages: (images: ChartImageInput) => void;
   onSelectPreset: (preset: SamplePreset) => void;
+  analysisMode: AnalysisMode;
+  onChangeAnalysisMode: (mode: AnalysisMode) => void;
 }
 
 interface TimeframeConfig {
@@ -18,7 +20,7 @@ interface TimeframeConfig {
   borderColor: string;
 }
 
-const TIMEFRAMES: TimeframeConfig[] = [
+const STANDARD_TIMEFRAMES: TimeframeConfig[] = [
   {
     key: 'h4Image',
     title: 'TF H4 (4-Hour)',
@@ -45,13 +47,46 @@ const TIMEFRAMES: TimeframeConfig[] = [
   },
 ];
 
+const SCALPING_TIMEFRAMES: TimeframeConfig[] = [
+  {
+    key: 'h4Image',
+    title: 'TF M15 (15-Minute)',
+    badge: 'Macro Scalp Bias',
+    role: 'วิเคราะห์โครงสร้างคลื่นแม่ & Trend หลักสายซิ่ง (Macro Bias M15)',
+    bgGrad: 'from-amber-500/10 to-orange-500/5',
+    borderColor: 'border-amber-500/30',
+  },
+  {
+    key: 'h1Image',
+    title: 'TF M5 (5-Minute)',
+    badge: 'Bounce & Pullback Zone',
+    role: 'วิเคราะห์โซนย่อเด้งตามเทรนด์หลัก & Demand/Supply M5',
+    bgGrad: 'from-cyan-500/10 to-blue-500/5',
+    borderColor: 'border-cyan-500/30',
+  },
+  {
+    key: 'm15Image',
+    title: '⚡ TF M1 (1-Minute)',
+    badge: 'Sniper Trigger M1',
+    role: 'จุดเข้าเทรด M1 คมกริบ โดนลากน้อยที่สุด เน้นกำไรเยอะ (Sniper Entry M1)',
+    bgGrad: 'from-emerald-500/20 via-teal-500/10 to-emerald-500/5',
+    borderColor: 'border-emerald-500/50',
+  },
+];
+
 export const ChartUploader: React.FC<ChartUploaderProps> = ({
   images,
   onChangeImages,
   onSelectPreset,
+  analysisMode,
+  onChangeAnalysisMode,
 }) => {
   const [activePreview, setActivePreview] = useState<{ title: string; url: string } | null>(null);
   const [dragActiveTF, setDragActiveTF] = useState<string | null>(null);
+
+  const isScalping = analysisMode === 'SCALPING';
+  const currentTfConfigs = isScalping ? SCALPING_TIMEFRAMES : STANDARD_TIMEFRAMES;
+  const currentPresets = isScalping ? SCALPING_SAMPLE_PRESETS : SAMPLE_PRESETS;
 
   const fileInputRefs = {
     h4Image: useRef<HTMLInputElement>(null),
@@ -110,6 +145,39 @@ export const ChartUploader: React.FC<ChartUploaderProps> = ({
 
   return (
     <div className="bg-slate-900/80 rounded-2xl p-5 border border-slate-800 shadow-xl backdrop-blur-sm space-y-4">
+      {/* Mode Switcher Bar */}
+      <div className="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-slate-300">เลือกโหมดการวิเคราะห์:</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={() => onChangeAnalysisMode('STANDARD')}
+            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 border ${
+              !isScalping
+                ? 'bg-slate-800 text-slate-100 border-emerald-500/50 shadow-md ring-1 ring-emerald-500/30'
+                : 'bg-slate-900/60 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-slate-200'
+            }`}
+          >
+            <Target className={`w-4 h-4 ${!isScalping ? 'text-emerald-400' : 'text-slate-500'}`} />
+            <span>🎯 โหมดมาตรฐาน (H4, H1, M15)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onChangeAnalysisMode('SCALPING')}
+            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 border ${
+              isScalping
+                ? 'bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-emerald-500/10 text-emerald-300 border-emerald-500 shadow-lg shadow-emerald-950/40 ring-1 ring-emerald-500'
+                : 'bg-slate-900/60 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-slate-200'
+            }`}
+          >
+            <Zap className={`w-4 h-4 ${isScalping ? 'text-amber-300 animate-pulse' : 'text-slate-500'}`} />
+            <span>⚡ โหมดเทรดสายซิ่ง (M15, M5, M1)</span>
+          </button>
+        </div>
+      </div>
+
       {/* Header & Quick Preset Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-800">
         <div>
@@ -117,15 +185,26 @@ export const ChartUploader: React.FC<ChartUploaderProps> = ({
             <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-bold">
               2
             </span>
-            <h2 className="text-base font-bold text-slate-100">
-              อัปโหลดรูปภาพกราฟ 3 Timeframe (H4, H1, M15)
+            <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
+              <span>
+                {isScalping
+                  ? 'อัปโหลดรูปภาพกราฟ 3 Timeframe (M15, M5, M1) สำหรับสายซิ่ง'
+                  : 'อัปโหลดรูปภาพกราฟ 3 Timeframe (H4, H1, M15)'}
+              </span>
+              {isScalping && (
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                  ⚡ M1 Scalper Mode
+                </span>
+              )}
             </h2>
             <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-slate-800 text-slate-300 border border-slate-700">
               อัปโหลดแล้ว {uploadedCount}/3
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            ลากและวางรูปภาพภาพกราฟ TradingView / MetaTrader หรือแนบไฟล์แยกตาม Timeframe
+            {isScalping
+              ? 'แนบรูป M15 (คลื่นแม่) -> M5 (จุดย่อเด้ง) -> M1 (เข้าเทรดสไนเปอร์ โดนลากน้อยที่สุด กำไรเยอะ)'
+              : 'ลากและวางรูปภาพภาพกราฟ TradingView / MetaTrader หรือแนบไฟล์แยกตาม Timeframe'}
           </p>
         </div>
 
@@ -135,7 +214,7 @@ export const ChartUploader: React.FC<ChartUploaderProps> = ({
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
             ทดลองด่วน:
           </span>
-          {SAMPLE_PRESETS.map((preset) => (
+          {currentPresets.map((preset) => (
             <button
               key={preset.id}
               onClick={() => onSelectPreset(preset)}
@@ -150,7 +229,7 @@ export const ChartUploader: React.FC<ChartUploaderProps> = ({
 
       {/* 3 Timeframe Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {TIMEFRAMES.map((tf) => {
+        {currentTfConfigs.map((tf) => {
           const imageSrc = images[tf.key];
           const isDragging = dragActiveTF === tf.key;
 

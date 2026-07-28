@@ -86,6 +86,11 @@ Analyzed with Trading Chart AI Analyzer`;
                 <span className="text-xs text-slate-400 bg-slate-800/60 px-2.5 py-1 rounded-full border border-slate-700/60">
                   ระบบ: {strategyUsed}
                 </span>
+                {result.analysisMode === 'SCALPING' && (
+                  <span className="text-xs font-bold text-amber-300 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/30 flex items-center gap-1">
+                    ⚡ สัญญาณสายซิ่ง M1 (Scalper Bounce)
+                  </span>
+                )}
               </div>
 
               <h2 className="text-xl font-extrabold text-slate-100 mt-2">

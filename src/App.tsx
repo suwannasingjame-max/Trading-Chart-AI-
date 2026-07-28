@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ChartImageInput, StrategyType, AnalysisResult, UserProfile, SubscriptionPlanType } from './types';
-import { SAMPLE_PRESETS, SamplePreset } from './data/samplePresets';
+import { ChartImageInput, StrategyType, AnalysisResult, UserProfile, SubscriptionPlanType, AnalysisMode } from './types';
+import { SAMPLE_PRESETS, SCALPING_SAMPLE_PRESETS, SamplePreset } from './data/samplePresets';
 import { Navbar } from './components/Navbar';
 import { StrategySelector } from './components/StrategySelector';
 import { ChartUploader } from './components/ChartUploader';
@@ -15,9 +15,10 @@ import { AdminDashboardModal } from './components/AdminDashboardModal';
 import { EaStoreModal } from './components/EaStoreModal';
 import { PositionAuditModal } from './components/PositionAuditModal';
 import { GeminiApiKeyCard } from './components/GeminiApiKeyCard';
-import { Sparkles, Play, RefreshCw, AlertCircle, ShieldCheck, ArrowRight, CheckCircle2, LayoutDashboard, Bot, BarChart2 } from 'lucide-react';
+import { Sparkles, Play, RefreshCw, AlertCircle, ShieldCheck, ArrowRight, CheckCircle2, LayoutDashboard, Bot, BarChart2, Zap } from 'lucide-react';
 
 export default function App() {
+  const [analysisMode, setAnalysisMode] = useState<AnalysisMode>('STANDARD');
   const [strategy, setStrategy] = useState<StrategyType>('SMC');
   const [images, setImages] = useState<ChartImageInput>({
     h4Image: null,
@@ -196,6 +197,11 @@ export default function App() {
   // Preset Selection Handler
   const handleSelectPreset = (preset: SamplePreset) => {
     setStrategy(preset.strategy);
+    if (preset.id.includes('m1_scalp') || preset.symbol.includes('M1 Scalp')) {
+      setAnalysisMode('SCALPING');
+    } else {
+      setAnalysisMode('STANDARD');
+    }
     setImages({
       h4Image: preset.h4DataUrl,
       h1Image: preset.h1DataUrl,
@@ -207,7 +213,7 @@ export default function App() {
   // Primary AI Analysis Execution Handler
   const handleRunAnalysis = async () => {
     if (!images.h4Image && !images.h1Image && !images.m15Image) {
-      setErrorMsg('กรุณาอัปโหลดรูปภาพกราฟอย่างน้อย 1 Timeframe (แนะนำครบ H4, H1, M15 เพื่อความแม่นยำ)');
+      setErrorMsg('กรุณาอัปโหลดรูปภาพกราฟอย่างน้อย 1 Timeframe');
       return;
     }
 
@@ -216,8 +222,12 @@ export default function App() {
     setLoadingStep('กำลังโหลดรูปภาพและเตรียมข้อมูลส่ง AI...');
 
     try {
-      setTimeout(() => setLoadingStep('กำลังประมวลผลโครงสร้างราคา Multi-Timeframe (H4 -> H1 -> M15)...'), 1000);
-      setTimeout(() => setLoadingStep(`วิเคราะห์ตามเงื่อนไขระบบ ${strategy} (หา Order Block / FVG / Entry)...`), 2500);
+      const stepText = analysisMode === 'SCALPING'
+        ? 'กำลังประมวลผลโครงสร้างราคาสายซิ่ง M15 -> M5 -> M1 (เข้าเทรดสไนเปอร์ M1)...'
+        : 'กำลังประมวลผลโครงสร้างราคา Multi-Timeframe (H4 -> H1 -> M15)...';
+      
+      setTimeout(() => setLoadingStep(stepText), 1000);
+      setTimeout(() => setLoadingStep(`วิเคราะห์ตามระบบ ${strategy} (ค้นหาจุดเด้ง / SL แคบ / R:R สูง)...`), 2500);
 
       const response = await fetch('/api/analyze', {
         method: 'POST',
@@ -227,6 +237,7 @@ export default function App() {
           h1Image: images.h1Image,
           m15Image: images.m15Image,
           strategy,
+          analysisMode,
           customNotes,
           customApiKey: user.apiKey,
         }),
@@ -243,7 +254,11 @@ export default function App() {
         throw new Error(errorMsgText);
       }
 
-      const result: AnalysisResult = await response.json();
+      const resultData = await response.json();
+      const result: AnalysisResult = {
+        ...resultData,
+        analysisMode,
+      };
 
       setCurrentAnalysis(result);
       saveToHistory(result);
@@ -296,11 +311,14 @@ export default function App() {
               </span>
               <span className="text-xs text-slate-400">• Multi-Timeframe Chart Analysis Engine</span>
             </div>
-            <h1 className="text-lg sm:text-xl font-black text-slate-100">
-              วิเคราะห์จุดเข้าเทรดจากรูปภาพกราฟ 3 กรอบเวลา (H4, H1, M15)
+            <h1 className="text-lg sm:text-xl font-black text-slate-100 flex items-center gap-2 flex-wrap">
+              <span>วิเคราะห์จุดเข้าเทรดจากรูปภาพกราฟ Multi-Timeframe</span>
+              <span className="text-xs px-2.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                {analysisMode === 'SCALPING' ? '⚡ โหมดเทรดสายซิ่ง (M15-M5-M1)' : '🎯 โหมดมาตรฐาน (H4-H1-M15)'}
+              </span>
             </h1>
             <p className="text-xs text-slate-300">
-              อัปโหลดรูปภาพกราฟ เลือกเทคนิคการเทรด แล้วให้ AI ค้นหา Entry, SL, TP สรุปตารางเงื่อนไข และวาดจุดเข้าซื้อขายบนกราฟ
+              อัปโหลดรูปภาพกราฟ (โหมดมาตรฐาน H4-H1-M15 หรือ ⚡ โหมดสายซิ่ง M15-M5-M1 เข้าเทรด M1 โดนลากน้อย) ให้ AI คำนวณ Entry, SL, TP สรุปเงื่อนไขและวาดบนกราฟ
             </p>
           </div>
 
@@ -332,6 +350,8 @@ export default function App() {
           images={images}
           onChangeImages={setImages}
           onSelectPreset={handleSelectPreset}
+          analysisMode={analysisMode}
+          onChangeAnalysisMode={setAnalysisMode}
         />
 
         {/* Google Gemini Personal API Key Setting Card */}

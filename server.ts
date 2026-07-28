@@ -652,7 +652,7 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
   // Multi-Timeframe Chart Analysis Endpoint
   app.post('/api/analyze', async (req, res) => {
     try {
-      const { h4Image, h1Image, m15Image, strategy = 'SMC', customNotes = '', customApiKey } = req.body || {};
+      const { h4Image, h1Image, m15Image, strategy = 'SMC', customNotes = '', customApiKey, analysisMode = 'STANDARD' } = req.body || {};
 
       const effectiveKey = (customApiKey && customApiKey.trim()) || process.env.GEMINI_API_KEY;
       if (!effectiveKey) {
@@ -662,45 +662,47 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
       }
 
       if (!h4Image && !h1Image && !m15Image) {
-        return res.status(400).json({ error: 'กรุณาอัปโหลดรูปภาพกราฟอย่างน้อย 1 Timeframe (แนะนำอัปโหลดครบ H4, H1, M15)' });
+        return res.status(400).json({ error: 'กรุณาอัปโหลดรูปภาพกราฟอย่างน้อย 1 Timeframe' });
       }
+
+      const isScalpMode = analysisMode === 'SCALPING';
 
       // Strategy specific system prompts & instructions in Thai
       const strategyGuide: Record<string, string> = {
         SMC: `เน้นวิเคราะห์ Smart Money Concepts (SMC):
-- TF H4: หา Higher Timeframe Bias, Major Market Structure (HH/HL/LH/LL), Major Order Block (OB), Liquidity Pool (BSL/SSL).
-- TF H1: หา Inducement, Fair Value Gap (FVG), Change of Character (ChoCH), Break of Structure (BoS), Liquidity Sweep.
-- TF M15: หา จุดเข้าเทรด Refined Order Block / FVG tap, Lower TF ChoCH + BoS, Risk Entry หรือ Confirmation Entry พร้อมคำนวณ Entry, SL (เหนือ/ใต้ OB/Liquidity) และ TP1, TP2, TP3.`,
+- ${isScalpMode ? 'TF M15' : 'TF H4'}: หา Higher Timeframe Bias, Major Market Structure (HH/HL/LH/LL), Major Order Block (OB), Liquidity Pool (BSL/SSL).
+- ${isScalpMode ? 'TF M5' : 'TF H1'}: หา Inducement, Fair Value Gap (FVG), Change of Character (ChoCH), Break of Structure (BoS), Liquidity Sweep และจุดพักตัวย่อเด้ง.
+- ${isScalpMode ? 'TF M1' : 'TF M15'}: หา จุดเข้าเทรด Sniper Trigger (Micro OB / FVG tap, Lower TF ChoCH + BoS, Wick Rejection Spike) พร้อมคำนวณ Entry, SL ที่แคบมาก (โดนลากน้อย) และ TP1, TP2, TP3 (กำไรเยอะ R:R สูง).`,
         
         PRICE_ACTION: `เน้นวิเคราะห์ Classic Price Action & Chart Patterns:
-- TF H4: แนวรับแนวต้านสำคัญ (Key Support & Resistance), Major Trendlines, Dominant Trend.
-- TF H1: รูปแบบกราฟ (Chart Patterns เช่น Head & Shoulders, Double Top/Bottom, Triangles, Channel), Candlestick Pattern (Pinbar, Engulfing).
-- TF M15: จุดเข้า Breakout & Retest หรือ Bounce จาก Key Level หา Entry, SL และ TP.`,
+- ${isScalpMode ? 'TF M15' : 'TF H4'}: แนวรับแนวต้านสำคัญ (Key Support & Resistance), Major Trendlines, Dominant Trend.
+- ${isScalpMode ? 'TF M5' : 'TF H1'}: รูปแบบกราฟ (Chart Patterns เช่น Head & Shoulders, Double Top/Bottom, Triangles, Channel), Candlestick Pattern (Pinbar, Engulfing).
+- ${isScalpMode ? 'TF M1' : 'TF M15'}: จุดเข้า Breakout & Retest หรือ Bounce จาก Key Level หา Entry, SL และ TP.`,
 
         ICT: `เน้นวิเคราะห์ Inner Circle Trader (ICT Methodology):
-- TF H4: Daily/H4 Bias, Liquidity Voids, Key Benchmark Levels.
-- TF H1: Power of 3 (AMD: Accumulation, Manipulation, Distribution), Judas Swing, Kill Zone setup, Fair Value Gap (FVG).
-- TF M15: Optimal Trade Entry (OTE - 61.8% to 79% Fibonacci retracement), Silver Bullet setup, Displacement Confirmation, Entry, SL, TP.`,
+- ${isScalpMode ? 'TF M15' : 'TF H4'}: Daily/M15 Bias, Liquidity Voids, Key Benchmark Levels.
+- ${isScalpMode ? 'TF M5' : 'TF H1'}: Power of 3 (AMD: Accumulation, Manipulation, Distribution), Judas Swing, Kill Zone setup, Fair Value Gap (FVG).
+- ${isScalpMode ? 'TF M1' : 'TF M15'}: Optimal Trade Entry (OTE - 61.8% to 79% Fibonacci retracement), Silver Bullet setup, Displacement Confirmation, Entry, SL, TP.`,
 
         SUPPLY_DEMAND: `เน้นวิเคราะห์ Supply & Demand Imbalance:
-- TF H4: Fresh Supply & Demand Zones, Rally-Base-Drop (RBD), Drop-Base-Rally (DBR), Rally-Base-Rally (RBR), Drop-Base-Drop (DBD).
-- TF H1: Zone Quality Score (Freshness, Strength of Departure, Time at Base), Zone Flips.
-- TF M15: Confirmation Touch / Drop into Zone, Entry at Zone Margin, SL outside zone Buffer, TP at Next Opposing Zone.`,
+- ${isScalpMode ? 'TF M15' : 'TF H4'}: Fresh Supply & Demand Zones, Rally-Base-Drop (RBD), Drop-Base-Rally (DBR), Rally-Base-Rally (RBR), Drop-Base-Drop (DBD).
+- ${isScalpMode ? 'TF M5' : 'TF H1'}: Zone Quality Score (Freshness, Strength of Departure, Time at Base), Zone Flips.
+- ${isScalpMode ? 'TF M1' : 'TF M15'}: Confirmation Touch / Drop into Zone, Entry at Zone Margin, SL outside zone Buffer, TP at Next Opposing Zone.`,
 
         BREAKOUT_TREND: `เน้นวิเคราะห์ Trend Following & Breakout Strategy:
-- TF H4: Directional Momentum, Moving Averages / Higher Highs.
-- TF H1: Compression / Consolidation Box, Key Resistance/Support Trigger line.
-- TF M15: High Volume Breakout Confirmation, Pullback Retest, Entry, SL, TP1, TP2, TP3.`,
+- ${isScalpMode ? 'TF M15' : 'TF H4'}: Directional Momentum, Moving Averages / Higher Highs.
+- ${isScalpMode ? 'TF M5' : 'TF H1'}: Compression / Consolidation Box, Key Resistance/Support Trigger line.
+- ${isScalpMode ? 'TF M1' : 'TF M15'}: High Volume Breakout Confirmation, Pullback Retest, Entry, SL, TP1, TP2, TP3.`,
 
         HARMONIC: `เน้นวิเคราะห์ Harmonic & Fibonacci Patterns:
-- TF H4: Macro Trend & Fibonacci Retracement / Extension levels.
-- TF H1: Potential Reversal Zone (PRZ), Harmonic Patterns (Gartley, Bat, Butterfly, Crab, ABCD).
-- TF M15: Reversal Candle Confirmation at PRZ, Entry, SL (Beyond X), TP1 (38.2% Fib), TP2 (61.8% Fib).`
+- ${isScalpMode ? 'TF M15' : 'TF H4'}: Macro Trend & Fibonacci Retracement / Extension levels.
+- ${isScalpMode ? 'TF M5' : 'TF H1'}: Potential Reversal Zone (PRZ), Harmonic Patterns (Gartley, Bat, Butterfly, Crab, ABCD).
+- ${isScalpMode ? 'TF M1' : 'TF M15'}: Reversal Candle Confirmation at PRZ, Entry, SL (Beyond X), TP1 (38.2% Fib), TP2 (61.8% Fib).`
       };
 
       const parts: any[] = [];
 
-      // Process H4 image if available
+      // Process Slot 1 image (H4 or M15) if available
       if (h4Image) {
         const matches = h4Image.match(/^data:(image\/[a-zA-Z]+);base64,(.+)$/);
         if (matches) {
@@ -710,11 +712,15 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
               data: matches[2],
             }
           });
-          parts.push({ text: 'ภาพกราฟ Timeframe H4 (Higher Timeframe / Structure & Bias):' });
+          parts.push({
+            text: isScalpMode
+              ? 'ภาพกราฟ Timeframe M15 (Macro Trend & Structure หลักสายซิ่ง):'
+              : 'ภาพกราฟ Timeframe H4 (Higher Timeframe / Structure & Bias):'
+          });
         }
       }
 
-      // Process H1 image if available
+      // Process Slot 2 image (H1 or M5) if available
       if (h1Image) {
         const matches = h1Image.match(/^data:(image\/[a-zA-Z]+);base64,(.+)$/);
         if (matches) {
@@ -724,11 +730,15 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
               data: matches[2],
             }
           });
-          parts.push({ text: 'ภาพกราฟ Timeframe H1 (Intermediate Timeframe / Key Zones & FVG/Patterns):' });
+          parts.push({
+            text: isScalpMode
+              ? 'ภาพกราฟ Timeframe M5 (Intermediate Pullback & Bounce Zone):'
+              : 'ภาพกราฟ Timeframe H1 (Intermediate Timeframe / Key Zones & FVG/Patterns):'
+          });
         }
       }
 
-      // Process M15 image if available
+      // Process Slot 3 image (M15 or M1) if available
       if (m15Image) {
         const matches = m15Image.match(/^data:(image\/[a-zA-Z]+);base64,(.+)$/);
         if (matches) {
@@ -738,12 +748,25 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
               data: matches[2],
             }
           });
-          parts.push({ text: 'ภาพกราฟ Timeframe M15 (Lower Timeframe / Entry Trigger & Execution):' });
+          parts.push({
+            text: isScalpMode
+              ? 'ภาพกราฟ Timeframe M1 (Precision Sniper Trigger M1 - คมกริบ โดนลากน้อย):'
+              : 'ภาพกราฟ Timeframe M15 (Lower Timeframe / Entry Trigger & Execution):'
+          });
         }
       }
 
+      const modeHeaderPrompt = isScalpMode
+        ? `คุณกำลังวิเคราะห์ใน "โหมดเทรดสายซิ่ง (Fast Scalping / Speed Trading Mode)" บน 3 Timeframe (M15, M5, M1)
+- หลักการวิเคราะห์: เน้นเข้าเทรดตามเทรนด์หลัก (Trend-Following Price Bounce) ณ จุดเด้งของราคา
+- ค้นหาราคาที่ดีที่สุด (Best Precision Entry) บน Timeframe M1
+- คำนวณจุด Stop Loss ให้แคบที่สุดเพื่อ "โดนลากน้อยที่สุด (Minimal Drawdown)"
+- เน้นอัตรากำไรเยอะ Risk-to-Reward Ratio (R:R) สูง
+- สแกนดูจุดเด้ง Rejection Spike / Micro ChoCH / M1 Order Block / M1 FVG`
+        : `คุณกำลังวิเคราะห์ในโหมดมาตรฐาน Multi-timeframe (H4, H1, M15)`;
+
       const systemPrompt = `คุณคือ Pro Senior Financial Trading Analyst และ AI Trading Expert ผู้เชี่ยวชาญระดับสถาบัน (Institutional Trader).
-หน้าที่ของคุณคือวิเคราะห์รูปภาพกราฟเทรด multi-timeframe (H4, H1, M15) ด้วยระบบการเทรด "${strategy}" ตามคำแนะนำต่อไปนี้:
+หน้าที่ของคุณคือ ${modeHeaderPrompt} ด้วยระบบการเทรด "${strategy}" ตามคำแนะนำต่อไปนี้:
 
 ${strategyGuide[strategy] || strategyGuide['SMC']}
 
@@ -753,10 +776,10 @@ ${customNotes ? `คำแนะนำเพิ่มเติมจากผู
 1. วิเคราะห์ราคาและแนวโน้มจากกราฟในรูปอย่างสมจริง แม่นยำ
 2. ตรวจหาตัวย่อ/ชื่อคู่เงิน (เช่น XAUUSD, EURUSD, BTCUSD) จากรูปภาพ ถ้าไม่มีให้ระบุประเภทสินทรัพย์ตามทรงกราฟ
 3. ประเมินว่าสัญญาณเทรดเป็น "BUY", "SELL" หรือ "NO_TRADE" (ถ้าโครงสร้างราคาไม่ชัดเจนหรือเสี่ยงสูงเกินไป ให้ตอบ NO_TRADE)
-4. คำนวณจุด Entry, SL, TP1, TP2, TP3 และ Risk:Reward Ratio (R:R) ที่แม่นยำ สมเหตุสมผลตามโครงสร้างราคาจริงในภาพ
-5. สร้าง "ตารางสรุปเงื่อนไขและเหตุผลประกอบการตัดสินใจ" (Summary Conditions) ให้เป็นขั้นตอน เช่น Alignment H4->H1, Liquidity Sweep, FVG Fill, Entry Trigger
+4. คำนวณจุด Entry, SL, TP1, TP2, TP3 และ Risk:Reward Ratio (R:R) ที่แม่นยำ สมเหตุสมผลตามโครงสร้างราคาจริงในภาพ ${isScalpMode ? '(สำหรับสายซิ่ง เน้น SL แคบ โดนลากน้อย R:R สูง)' : ''}
+5. สร้าง "ตารางสรุปเงื่อนไขและเหตุผลประกอบการตัดสินใจ" (Summary Conditions) ให้เป็นขั้นตอน เช่น Alignment ${isScalpMode ? 'M15->M5' : 'H4->H1'}, Liquidity Sweep, FVG Fill, Entry Trigger ${isScalpMode ? 'M1' : 'M15'}
 6. ระบุจุด invalidationScenario (เมื่อไหร่ที่แผนเทรดนี้จะยกเลิก) และ tradeManagement (การบริหารออเดอร์ เช่น เลื่อน SL มา BE เมื่อถึง TP1)
-7. ประมาณค่าตำแหน่ง visual overlay (0-100%) บนภาพกราฟ M15 เพื่อนำไปวาดเส้น Entry (เขียว), SL (แดง), TP (ฟ้า) และกล่อง Order Block / FVG บนหน้าจอให้ผู้ใช้เห็นชัดเจน
+7. ประมาณค่าตำแหน่ง visual overlay (0-100%) บนภาพกราฟ ${isScalpMode ? 'M1' : 'M15'} เพื่อนำไปวาดเส้น Entry (เขียว), SL (แดง), TP (ฟ้า) และกล่อง Order Block / FVG บนหน้าจอให้ผู้ใช้เห็นชัดเจน
 
 โปรดส่งออกผลลัพธ์เป็น JSON ภาษาไทยตามโครงสร้างนี้อย่างเคร่งครัด:`;
 
@@ -774,7 +797,7 @@ ${customNotes ? `คำแนะนำเพิ่มเติมจากผู
             items: {
               type: Type.OBJECT,
               properties: {
-                timeframe: { type: Type.STRING, description: 'H4, H1, หรือ M15' },
+                timeframe: { type: Type.STRING, description: isScalpMode ? 'M15, M5, หรือ M1' : 'H4, H1, หรือ M15' },
                 trend: { type: Type.STRING, description: 'Bullish, Bearish, หรือ Sideways / Ranging' },
                 summary: { type: Type.STRING, description: 'คำอธิบายโครงสร้างราคาใน TF นี้' },
                 keyLevel: { type: Type.STRING, description: 'ระดับราคาสำคัญใน TF นี้' },
@@ -872,15 +895,29 @@ ${customNotes ? `คำแนะนำเพิ่มเติมจากผู
 
       try {
         const ai = getAi(customApiKey);
-        const result = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: { parts },
-          config: {
-            responseMimeType: 'application/json',
-            responseSchema: responseSchema,
-            temperature: 0.2, // Low temperature for consistent financial analysis
-          },
-        });
+        let result: any;
+        try {
+          result = await ai.models.generateContent({
+            model: 'gemini-3.6-flash',
+            contents: { parts },
+            config: {
+              responseMimeType: 'application/json',
+              responseSchema: responseSchema,
+              temperature: 0.2, // Low temperature for consistent financial analysis
+            },
+          });
+        } catch (primaryModelErr: any) {
+          console.warn('Primary model gemini-3.6-flash error, trying fallback gemini-flash-latest:', primaryModelErr?.message);
+          result = await ai.models.generateContent({
+            model: 'gemini-flash-latest',
+            contents: { parts },
+            config: {
+              responseMimeType: 'application/json',
+              responseSchema: responseSchema,
+              temperature: 0.2,
+            },
+          });
+        }
 
         const responseText = result.text;
         if (responseText) {
@@ -1030,15 +1067,29 @@ ${customNotes ? `คำแนะนำเพิ่มเติมจากผู
 
       try {
         const ai = getAi(req.body?.customApiKey);
-        const result = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: { parts },
-          config: {
-            responseMimeType: 'application/json',
-            responseSchema: responseSchema,
-            temperature: 0.2,
-          },
-        });
+        let result: any;
+        try {
+          result = await ai.models.generateContent({
+            model: 'gemini-3.6-flash',
+            contents: { parts },
+            config: {
+              responseMimeType: 'application/json',
+              responseSchema: responseSchema,
+              temperature: 0.2,
+            },
+          });
+        } catch (primaryModelErr: any) {
+          console.warn('Primary model gemini-3.6-flash error in audit-position, trying fallback gemini-flash-latest:', primaryModelErr?.message);
+          result = await ai.models.generateContent({
+            model: 'gemini-flash-latest',
+            contents: { parts },
+            config: {
+              responseMimeType: 'application/json',
+              responseSchema: responseSchema,
+              temperature: 0.2,
+            },
+          });
+        }
 
         const responseText = result.text;
         if (responseText) {
