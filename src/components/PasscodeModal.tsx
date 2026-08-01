@@ -76,6 +76,41 @@ export const PasscodeModal: React.FC<PasscodeModalProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [activePasscodeDetail, setActivePasscodeDetail] = useState<{ usedCount: number; maxUses: number } | null>(null);
+
+  React.useEffect(() => {
+    if (!user.activatedPasscode) {
+      setActivePasscodeDetail(null);
+      return;
+    }
+    let isMounted = true;
+    const loadKeyDetail = async () => {
+      try {
+        const res = await fetch('/api/passcodes');
+        if (res.ok) {
+          const list: PasscodeKey[] = await res.json();
+          const found = list.find((p) => p.code.toUpperCase() === user.activatedPasscode?.toUpperCase());
+          if (found && isMounted) {
+            setActivePasscodeDetail({ usedCount: found.usedCount, maxUses: found.maxUses });
+            return;
+          }
+        }
+      } catch {}
+
+      try {
+        let stored: PasscodeKey[] = DEFAULT_PASSCODES;
+        const saved = localStorage.getItem('trading_chart_ai_passcodes');
+        if (saved) stored = JSON.parse(saved);
+        const found = stored.find((p) => p.code.toUpperCase() === user.activatedPasscode?.toUpperCase());
+        if (found && isMounted) {
+          setActivePasscodeDetail({ usedCount: found.usedCount, maxUses: found.maxUses });
+        }
+      } catch {}
+    };
+
+    loadKeyDetail();
+    return () => { isMounted = false; };
+  }, [user.activatedPasscode, isOpen]);
 
   if (!isOpen) return null;
 
@@ -98,7 +133,7 @@ export const PasscodeModal: React.FC<PasscodeModalProps> = ({
 
     try {
       // 1. Try server verification first
-      let validatedData: { valid: boolean; plan?: string; expiresAt?: string; message?: string } | null = null;
+      let validatedData: { valid: boolean; plan?: string; expiresAt?: string; message?: string; usedCount?: number; maxUses?: number } | null = null;
       try {
         const res = await fetch('/api/passcodes/validate', {
           method: 'POST',
@@ -147,8 +182,10 @@ export const PasscodeModal: React.FC<PasscodeModalProps> = ({
             validatedData = {
               valid: true,
               plan: matched.plan,
+              usedCount: matched.usedCount,
+              maxUses: matched.maxUses,
               expiresAt: matched.expiresAt || undefined,
-              message: `เปิดใช้งานรหัส ${matched.code} สิทธิ์ ${matched.plan === 'PRO_ANNUAL' ? 'PRO รายปี' : 'PRO รายเดือน'} เรียบร้อยแล้ว!`,
+              message: `เปิดใช้งานรหัส ${matched.code} สิทธิ์ ${matched.plan === 'PRO_ANNUAL' ? 'PRO รายปี' : 'PRO รายเดือน'} เรียบร้อยแล้ว! (สิทธิ์การใช้งาน: ${matched.usedCount}/${matched.maxUses} สิทธิ์)`,
             };
           }
         } else {
@@ -161,6 +198,9 @@ export const PasscodeModal: React.FC<PasscodeModalProps> = ({
 
       if (validatedData && validatedData.valid) {
         const plan = validatedData.plan || 'PRO_ANNUAL';
+        if (validatedData.usedCount !== undefined && validatedData.maxUses !== undefined) {
+          setActivePasscodeDetail({ usedCount: validatedData.usedCount, maxUses: validatedData.maxUses });
+        }
         onActivatePasscode(rawCode, plan, validatedData.expiresAt);
         setSuccessMsg(validatedData.message || 'ปลดล็อกสิทธิ์ VIP เรียบร้อยแล้ว!');
         setInputCode('');
@@ -244,6 +284,17 @@ export const PasscodeModal: React.FC<PasscodeModalProps> = ({
                   </button>
                 )}
               </div>
+
+              {user.activatedPasscode && (
+                <div className="mt-3 pt-2.5 border-t border-emerald-500/20 flex items-center justify-between text-xs">
+                  <span className="text-slate-300 font-medium">สิทธิ์การใช้งานของ License Key นี้:</span>
+                  <span className="font-mono font-bold text-amber-300 bg-slate-950/90 px-2.5 py-1 rounded-lg border border-amber-500/30">
+                    {activePasscodeDetail
+                      ? `${activePasscodeDetail.usedCount} / ${activePasscodeDetail.maxUses} สิทธิ์`
+                      : 'กำลังโหลดสิทธิ์...'}
+                  </span>
+                </div>
+              )}
             </div>
           )}
 

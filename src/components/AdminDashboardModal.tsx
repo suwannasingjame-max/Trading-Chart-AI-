@@ -933,8 +933,8 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                             </td>
                             <td className="p-3">
                               <div className="space-y-1">
-                                <span className="font-mono text-slate-200 font-bold">
-                                  {p.usedCount} / {p.maxUses}
+                                <span className="font-mono text-amber-300 font-bold bg-slate-950 px-2 py-0.5 rounded border border-slate-800 inline-block">
+                                  {p.usedCount} / {p.maxUses} สิทธิ์
                                 </span>
                                 <div className="w-24 h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
                                   <div

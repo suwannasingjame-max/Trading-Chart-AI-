@@ -1595,8 +1595,10 @@ ${chartImageBase64 ? `[ผู้ใช้แนบรูปภาพกราฟ
       return res.json({
         valid: true,
         plan: found.plan,
+        usedCount: found.usedCount,
+        maxUses: found.maxUses,
         expiresAt: found.expiresAt || null,
-        message: `เปิดใช้งานรหัส ${found.code} สิทธิ์ ${found.plan === 'PRO_ANNUAL' ? 'PRO VIP รายปี' : 'PRO VIP รายเดือน'} เรียบร้อยแล้ว!`,
+        message: `เปิดใช้งานรหัส ${found.code} สิทธิ์ ${found.plan === 'PRO_ANNUAL' ? 'PRO VIP รายปี' : 'PRO VIP รายเดือน'} เรียบร้อยแล้ว! (สิทธิ์การใช้งาน: ${found.usedCount}/${found.maxUses} สิทธิ์)`,
       });
     }
 
