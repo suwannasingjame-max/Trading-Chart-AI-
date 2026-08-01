@@ -1,6 +1,6 @@
 import React from 'react';
 import { UserProfile } from '../types';
-import { TrendingUp, History, Sparkles, HelpCircle, User, BarChart2, Compass } from 'lucide-react';
+import { TrendingUp, History, Sparkles, HelpCircle, User, BarChart2, Compass, Key, Crown } from 'lucide-react';
 
 interface NavbarProps {
   onOpenHistory: () => void;
@@ -9,6 +9,7 @@ interface NavbarProps {
   onOpenEaStore: () => void;
   onOpenPositionAudit: () => void;
   onOpenDailyAnalysis: () => void;
+  onOpenPasscode: () => void;
   historyCount: number;
   user: UserProfile;
 }
@@ -20,9 +21,12 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenEaStore,
   onOpenPositionAudit,
   onOpenDailyAnalysis,
+  onOpenPasscode,
   historyCount,
   user,
 }) => {
+  const isVip = !!user.activatedPasscode || user.plan !== 'FREE';
+
   return (
     <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 text-slate-100 px-4 lg:px-8 py-3.5 shadow-lg">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -54,6 +58,29 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Passcode / VIP Key Button */}
+          <button
+            onClick={onOpenPasscode}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition border shadow-sm ${
+              isVip
+                ? 'bg-gradient-to-r from-amber-500/20 to-emerald-500/20 hover:from-amber-500/30 hover:to-emerald-500/30 text-amber-300 border-amber-500/40'
+                : 'bg-slate-800 hover:bg-slate-700 text-amber-400 border-amber-500/30'
+            }`}
+            title="กรอก Passcode หรือ VIP License Key"
+          >
+            {isVip ? (
+              <Crown className="w-4 h-4 text-amber-400 animate-pulse" />
+            ) : (
+              <Key className="w-4 h-4 text-amber-400" />
+            )}
+            <span className="hidden sm:inline">
+              {isVip ? `VIP Active (${user.activatedPasscode || user.plan})` : '🔑 กรอก Passcode / VIP Key'}
+            </span>
+            <span className="sm:hidden">
+              {isVip ? 'VIP' : 'Passcode'}
+            </span>
+          </button>
+
           {/* Daily Market Analysis Button */}
           <button
             onClick={onOpenDailyAnalysis}
@@ -75,7 +102,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="hidden sm:inline">วิเคราะห์ออเดอร์</span>
             <span className="sm:hidden">วิเคราะห์ออเดอร์</span>
           </button>
-
 
           {/* History Button */}
           <button

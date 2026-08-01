@@ -16,6 +16,7 @@ import { EaStoreModal } from './components/EaStoreModal';
 import { PositionAuditModal } from './components/PositionAuditModal';
 import { DailyMarketAnalysisModal } from './components/DailyMarketAnalysisModal';
 import { GeminiApiKeyCard } from './components/GeminiApiKeyCard';
+import { PasscodeModal } from './components/PasscodeModal';
 import { Sparkles, Play, RefreshCw, AlertCircle, ShieldCheck, ArrowRight, CheckCircle2, LayoutDashboard, Bot, BarChart2, Zap, Compass } from 'lucide-react';
 
 export default function App() {
@@ -44,6 +45,7 @@ export default function App() {
   const [isEaStoreOpen, setIsEaStoreOpen] = useState<boolean>(false);
   const [isPositionAuditOpen, setIsPositionAuditOpen] = useState<boolean>(false);
   const [isDailyAnalysisOpen, setIsDailyAnalysisOpen] = useState<boolean>(false);
+  const [isPasscodeOpen, setIsPasscodeOpen] = useState<boolean>(false);
 
   // User Profile State (Open Access - No Login Required)
   const [user, setUser] = useState<UserProfile>(() => {
@@ -83,6 +85,31 @@ export default function App() {
       apiKey: newKey,
     };
     saveUser(updated);
+  };
+
+  // Passcode / VIP License Handlers
+  const handleActivatePasscode = (passcode: string, plan: string, expiresAt?: string) => {
+    const updatedUser: UserProfile = {
+      ...user,
+      plan: plan === 'PRO_ANNUAL' ? 'PRO_ANNUAL' : 'PRO_MONTHLY',
+      dailyQuotaLimit: 9999,
+      activatedPasscode: passcode,
+      activatedAt: new Date().toISOString(),
+      subscriptionExpiresAt: expiresAt,
+    };
+    saveUser(updatedUser);
+  };
+
+  const handleDeactivatePasscode = () => {
+    const updatedUser: UserProfile = {
+      ...user,
+      plan: 'FREE',
+      dailyQuotaLimit: 3,
+      activatedPasscode: undefined,
+      activatedAt: undefined,
+      subscriptionExpiresAt: undefined,
+    };
+    saveUser(updatedUser);
   };
 
   // Load history from localStorage on mount
@@ -259,6 +286,7 @@ export default function App() {
         onOpenEaStore={() => setIsEaStoreOpen(true)}
         onOpenPositionAudit={() => setIsPositionAuditOpen(true)}
         onOpenDailyAnalysis={() => setIsDailyAnalysisOpen(true)}
+        onOpenPasscode={() => setIsPasscodeOpen(true)}
         historyCount={history.length}
         user={user}
       />
@@ -329,6 +357,7 @@ export default function App() {
         <GeminiApiKeyCard
           apiKey={user.apiKey || ''}
           onSaveApiKey={handleUpdateApiKey}
+          onOpenPasscode={() => setIsPasscodeOpen(true)}
         />
 
         {/* Additional User Notes Input */}
@@ -452,6 +481,14 @@ export default function App() {
         isOpen={isDailyAnalysisOpen}
         onClose={() => setIsDailyAnalysisOpen(false)}
         user={user}
+      />
+
+      <PasscodeModal
+        isOpen={isPasscodeOpen}
+        onClose={() => setIsPasscodeOpen(false)}
+        user={user}
+        onActivatePasscode={handleActivatePasscode}
+        onDeactivatePasscode={handleDeactivatePasscode}
       />
     </div>
   );

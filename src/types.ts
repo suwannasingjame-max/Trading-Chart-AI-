@@ -120,6 +120,17 @@ export interface SubscriptionPricingTier {
   recommended?: boolean;
 }
 
+export interface PasscodeKey {
+  code: string; // e.g., "VIP999", "VIP-GOLD-2026", "TRADER888"
+  plan: SubscriptionPlanType;
+  maxUses: number;
+  usedCount: number;
+  expiresAt?: string | null;
+  isActive: boolean;
+  createdAt: string;
+  note?: string;
+}
+
 export interface UserProfile {
   id: string;
   name: string;
@@ -130,6 +141,8 @@ export interface UserProfile {
   dailyQuotaLimit: number; // 3 for FREE, Infinity/999 for PRO
   subscriptionExpiresAt?: string;
   isLoggedIn: boolean;
+  activatedPasscode?: string;
+  activatedAt?: string;
 }
 
 export interface PaymentTransaction {

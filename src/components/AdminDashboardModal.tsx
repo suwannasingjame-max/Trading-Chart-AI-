@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { PaymentTransaction, AnalysisLogItem, SubscriptionPlanType } from '../types';
+import { PaymentTransaction, AnalysisLogItem, SubscriptionPlanType, PasscodeKey } from '../types';
+import { DEFAULT_PASSCODES } from './PasscodeModal';
 import {
   LayoutDashboard,
   Users,
@@ -16,7 +17,12 @@ import {
   DollarSign,
   ShieldAlert,
   Sliders,
-  Check
+  Check,
+  Key,
+  Plus,
+  Trash2,
+  Copy,
+  Zap,
 } from 'lucide-react';
 
 interface AdminDashboardModalProps {
@@ -42,7 +48,7 @@ const formatThaiDateTime = (isoString?: string) => {
 };
 
 export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'USERS' | 'PAYMENTS' | 'LOGS'>('USERS');
+  const [activeTab, setActiveTab] = useState<'USERS' | 'PASSCODES' | 'PAYMENTS' | 'LOGS'>('USERS');
   const [isLoading, setIsLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pinInput, setPinInput] = useState('');
@@ -64,7 +70,147 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
   const [vipQuickQuery, setVipQuickQuery] = useState('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Passcodes & License Keys state
+  const [passcodes, setPasscodes] = useState<PasscodeKey[]>(() => {
+    try {
+      const saved = localStorage.getItem('trading_chart_ai_passcodes');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return DEFAULT_PASSCODES;
+  });
+
+  const [newCode, setNewCode] = useState('');
+  const [newPlan, setNewPlan] = useState<SubscriptionPlanType>('PRO_ANNUAL');
+  const [newMaxUses, setNewMaxUses] = useState(100);
+  const [newValidityDays, setNewValidityDays] = useState(365);
+  const [newNote, setNewNote] = useState('');
+  const [copiedPasscode, setCopiedPasscode] = useState<string | null>(null);
+
   const ADMIN_PIN = 'Pasak167/22';
+
+  const savePasscodesToStorage = (updated: PasscodeKey[]) => {
+    setPasscodes(updated);
+    try {
+      localStorage.setItem('trading_chart_ai_passcodes', JSON.stringify(updated));
+    } catch {}
+  };
+
+  const handleCopyCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedPasscode(code);
+    setTimeout(() => setCopiedPasscode(null), 2000);
+  };
+
+  const handleCreatePasscode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const formattedCode = (newCode || `VIP-${Math.random().toString(36).substring(2, 6).toUpperCase()}`).trim().toUpperCase();
+
+    if (passcodes.some((p) => p.code.toUpperCase() === formattedCode)) {
+      setToastMessage(`รหัส Passcode ${formattedCode} มีอยู่ในระบบแล้ว`);
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
+
+    const expiresDate = newValidityDays > 0
+      ? new Date(Date.now() + newValidityDays * 24 * 60 * 60 * 1000).toISOString()
+      : undefined;
+
+    const created: PasscodeKey = {
+      code: formattedCode,
+      plan: newPlan,
+      maxUses: Number(newMaxUses) || 100,
+      usedCount: 0,
+      expiresAt: expiresDate,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      note: newNote || 'สร้างโดยผู้ดูแลระบบ (Admin)',
+    };
+
+    // Try server post
+    try {
+      await fetch('/api/passcodes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: formattedCode,
+          plan: newPlan,
+          maxUses: Number(newMaxUses) || 100,
+          validityDays: newValidityDays,
+          note: newNote || 'สร้างโดยผู้ดูแลระบบ (Admin)',
+        }),
+      });
+    } catch {}
+
+    const updated = [created, ...passcodes];
+    savePasscodesToStorage(updated);
+    setNewCode('');
+    setNewNote('');
+    setToastMessage(`สร้าง Passcode / VIP Key: ${formattedCode} สำเร็จแล้ว!`);
+    setTimeout(() => setToastMessage(null), 4000);
+  };
+
+  const handleBatchGeneratePasscodes = async () => {
+    const generatedBatch: PasscodeKey[] = [];
+    const plan: SubscriptionPlanType = 'PRO_ANNUAL';
+    for (let i = 0; i < 5; i++) {
+      const randomCode = `VIP-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
+      const newKey: PasscodeKey = {
+        code: randomCode,
+        plan,
+        maxUses: 100,
+        usedCount: 0,
+        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        note: 'สุ่มสร้างอัตโนมัติ (Batch Generator)',
+      };
+      generatedBatch.push(newKey);
+
+      try {
+        await fetch('/api/passcodes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code: randomCode,
+            plan: 'PRO_ANNUAL',
+            maxUses: 100,
+            validityDays: 365,
+            note: 'สุ่มสร้างอัตโนมัติ (Batch Generator)',
+          }),
+        });
+      } catch {}
+    }
+
+    const updated = [...generatedBatch, ...passcodes];
+    savePasscodesToStorage(updated);
+    setToastMessage('สุ่มสร้าง Passcode VIP 5 รหัสใหม่เรียบร้อยแล้ว!');
+    setTimeout(() => setToastMessage(null), 4000);
+  };
+
+  const handleTogglePasscodeActive = async (code: string) => {
+    try {
+      await fetch(`/api/passcodes/${encodeURIComponent(code)}/toggle`, { method: 'PUT' });
+    } catch {}
+
+    const updated = passcodes.map((p) => {
+      if (p.code === code) return { ...p, isActive: !p.isActive };
+      return p;
+    });
+    savePasscodesToStorage(updated);
+  };
+
+  const handleDeletePasscode = async (code: string) => {
+    if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบ Passcode ${code}?`)) {
+      try {
+        await fetch(`/api/passcodes/${encodeURIComponent(code)}`, { method: 'DELETE' });
+      } catch {}
+
+      const updated = passcodes.filter((p) => p.code !== code);
+      savePasscodesToStorage(updated);
+      setToastMessage(`ลบ Passcode ${code} เรียบร้อยแล้ว`);
+      setTimeout(() => setToastMessage(null), 3000);
+    }
+  };
 
   const handleVerifyPin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,17 +227,32 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
   const fetchAdminData = async () => {
     setIsLoading(true);
     try {
-      const [statsRes, usersRes, paymentsRes, logsRes] = await Promise.all([
+      const [statsRes, usersRes, paymentsRes, logsRes, passcodesRes] = await Promise.all([
         fetch('/api/admin/stats').then((r) => (r.ok ? r.json() : null)).catch(() => null),
         fetch('/api/admin/users').then((r) => (r.ok ? r.json() : [])).catch(() => []),
         fetch('/api/admin/payments').then((r) => (r.ok ? r.json() : [])).catch(() => []),
         fetch('/api/admin/analyses').then((r) => (r.ok ? r.json() : [])).catch(() => []),
+        fetch('/api/passcodes').then((r) => (r.ok ? r.json() : [])).catch(() => []),
       ]);
 
       if (statsRes && typeof statsRes === 'object') setStats(statsRes);
       if (Array.isArray(usersRes)) setUsers(usersRes);
       if (Array.isArray(paymentsRes)) setPayments(paymentsRes);
       if (Array.isArray(logsRes)) setAnalysisLogs(logsRes);
+
+      if (Array.isArray(passcodesRes) && passcodesRes.length > 0) {
+        // Merge with local passcodes
+        setPasscodes((prev) => {
+          const map = new Map<string, PasscodeKey>();
+          prev.forEach((p) => map.set(p.code.toUpperCase(), p));
+          passcodesRes.forEach((p) => map.set(p.code.toUpperCase(), p));
+          const merged = Array.from(map.values());
+          try {
+            localStorage.setItem('trading_chart_ai_passcodes', JSON.stringify(merged));
+          } catch {}
+          return merged;
+        });
+      }
     } catch (err) {
       console.error('Failed to load admin backoffice data:', err);
     } finally {
@@ -312,6 +473,18 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
             </button>
 
             <button
+              onClick={() => setActiveTab('PASSCODES')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                activeTab === 'PASSCODES'
+                  ? 'bg-emerald-500 text-slate-950 shadow'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Key className="w-3.5 h-3.5" />
+              <span>Passcode & VIP Keys ({passcodes.length})</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('PAYMENTS')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 relative ${
                 activeTab === 'PAYMENTS'
@@ -339,12 +512,12 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
             </button>
           </div>
 
-          {activeTab === 'USERS' && (
+          {(activeTab === 'USERS' || activeTab === 'PASSCODES') && (
             <div className="relative">
               <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="ค้นหาตามชื่อ หรือ อีเมล..."
+                placeholder={activeTab === 'PASSCODES' ? 'ค้นหาคีย์ Passcode หรือ หมายเหตุ...' : 'ค้นหาตามชื่อ หรือ อีเมล...'}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 w-full sm:w-56"
@@ -607,7 +780,207 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
             </div>
           )}
 
-          {/* TAB 2: PAYMENTS LIST */}
+          {/* TAB 2: PASSCODES & VIP KEYS */}
+          {activeTab === 'PASSCODES' && (
+            <div className="space-y-4">
+              {/* Form Card: Create New Passcode */}
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 border border-slate-800 space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400">
+                      <Key className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-100">สร้าง Passcode / VIP License Key ใหม่</h3>
+                      <p className="text-[11px] text-slate-400">สร้างรหัสผ่านเพื่อแจกสมาชิก นำมากรอกเพื่อเปิดใช้งานสิทธิ์ Pro VIP ไม่จำกัด</p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleBatchGeneratePasscodes}
+                    className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold transition flex items-center gap-1.5"
+                  >
+                    <Zap className="w-3.5 h-3.5 text-amber-400" />
+                    <span>สุ่มสร้าง 5 คีย์ (Batch Generator)</span>
+                  </button>
+                </div>
+
+                <form onSubmit={handleCreatePasscode} className="grid grid-cols-1 sm:grid-cols-12 gap-3 text-xs">
+                  <div className="sm:col-span-3">
+                    <label className="block font-semibold text-slate-300 mb-1">รหัส Passcode</label>
+                    <input
+                      type="text"
+                      placeholder="เช่น VIP2026, GOLD99"
+                      value={newCode}
+                      onChange={(e) => setNewCode(e.target.value.toUpperCase())}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-mono tracking-widest uppercase focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-3">
+                    <label className="block font-semibold text-slate-300 mb-1">แผนสมาชิกที่ได้รับ</label>
+                    <select
+                      value={newPlan}
+                      onChange={(e) => setNewPlan(e.target.value as SubscriptionPlanType)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:border-amber-500 focus:outline-none"
+                    >
+                      <option value="PRO_ANNUAL">PRO VIP (รายปี / Unlimited)</option>
+                      <option value="PRO_MONTHLY">PRO VIP (รายเดือน)</option>
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block font-semibold text-slate-300 mb-1">จำนวนสิทธิ์ที่ใช้ได้</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={9999}
+                      value={newMaxUses}
+                      onChange={(e) => setNewMaxUses(Number(e.target.value))}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block font-semibold text-slate-300 mb-1">อายุคีย์ (วัน)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={3650}
+                      value={newValidityDays}
+                      onChange={(e) => setNewValidityDays(Number(e.target.value))}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:border-amber-500 focus:outline-none"
+                      placeholder="365"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2 flex items-end">
+                    <button
+                      type="submit"
+                      className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-emerald-500 hover:from-amber-400 hover:to-emerald-400 text-slate-950 font-black text-xs transition shadow flex items-center justify-center gap-1"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>สร้างคีย์</span>
+                    </button>
+                  </div>
+
+                  <div className="sm:col-span-12">
+                    <input
+                      type="text"
+                      placeholder="หมายเหตุเพิ่มเติม (เช่น สำหรับลูกค้า VIP กลุ่มไลน์, โปรโมชั่นเดือนนี้)..."
+                      value={newNote}
+                      onChange={(e) => setNewNote(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-slate-300 text-xs focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+                </form>
+              </div>
+
+              {/* Passcodes List Table */}
+              <div className="overflow-x-auto rounded-xl border border-slate-800">
+                <table className="w-full text-left text-xs text-slate-300">
+                  <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+                    <tr>
+                      <th className="p-3">รหัส Passcode</th>
+                      <th className="p-3">แผนสิทธิ์</th>
+                      <th className="p-3">จำนวนการใช้งาน</th>
+                      <th className="p-3">สถานะ</th>
+                      <th className="p-3">วันหมดอายุคีย์</th>
+                      <th className="p-3">หมายเหตุ</th>
+                      <th className="p-3 text-right">การจัดการ</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60 bg-slate-900/40">
+                    {passcodes
+                      .filter(
+                        (p) =>
+                          (p.code || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (p.note || '').toLowerCase().includes(searchTerm.toLowerCase())
+                      )
+                      .map((p) => {
+                        const usagePercent = Math.min(100, Math.round((p.usedCount / p.maxUses) * 100));
+                        return (
+                          <tr key={p.code} className="hover:bg-slate-800/40">
+                            <td className="p-3">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono font-black text-amber-300 text-sm tracking-wider">
+                                  {p.code}
+                                </span>
+                                <button
+                                  onClick={() => handleCopyCode(p.code)}
+                                  className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition"
+                                  title="คัดลอกรหัส"
+                                >
+                                  {copiedPasscode === p.code ? (
+                                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                  ) : (
+                                    <Copy className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                                  p.plan === 'PRO_ANNUAL'
+                                    ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                                    : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                                }`}
+                              >
+                                {p.plan === 'PRO_ANNUAL' ? '👑 PRO VIP (รายปี)' : '⭐ PRO VIP (รายเดือน)'}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              <div className="space-y-1">
+                                <span className="font-mono text-slate-200 font-bold">
+                                  {p.usedCount} / {p.maxUses}
+                                </span>
+                                <div className="w-24 h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+                                  <div
+                                    className="h-full bg-gradient-to-r from-emerald-500 to-amber-500"
+                                    style={{ width: `${usagePercent}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <button
+                                onClick={() => handleTogglePasscodeActive(p.code)}
+                                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition ${
+                                  p.isActive
+                                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/30'
+                                    : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
+                                }`}
+                              >
+                                {p.isActive ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+                              </button>
+                            </td>
+                            <td className="p-3 font-mono text-slate-400 text-[11px]">
+                              {formatThaiDateTime(p.expiresAt)}
+                            </td>
+                            <td className="p-3 text-slate-300 text-[11px] max-w-xs truncate">
+                              {p.note || '-'}
+                            </td>
+                            <td className="p-3 text-right">
+                              <button
+                                onClick={() => handleDeletePasscode(p.code)}
+                                className="p-1.5 rounded-lg bg-slate-800 hover:bg-red-500/20 hover:text-red-400 text-slate-400 transition"
+                                title="ลบ Passcode"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: PAYMENTS LIST */}
           {activeTab === 'PAYMENTS' && (
             <div className="space-y-3">
               <div className="overflow-x-auto rounded-xl border border-slate-800">

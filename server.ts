@@ -1515,6 +1515,158 @@ ${chartImageBase64 ? `[ผู้ใช้แนบรูปภาพกราฟ
     }
   });
 
+  // ==========================================
+  // PASSCODE & VIP LICENSE KEY SYSTEM ENDPOINTS
+  // ==========================================
+  interface ServerPasscode {
+    code: string;
+    plan: string;
+    maxUses: number;
+    usedCount: number;
+    expiresAt?: string | null;
+    isActive: boolean;
+    createdAt: string;
+    note: string;
+  }
+
+  let passcodesStore: ServerPasscode[] = [
+    {
+      code: 'VIP999',
+      plan: 'PRO_ANNUAL',
+      maxUses: 999,
+      usedCount: 12,
+      expiresAt: null,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      note: 'คีย์ VIP ถาวร (แจกสมาชิกทดสอบ)',
+    },
+    {
+      code: 'VIP2026',
+      plan: 'PRO_ANNUAL',
+      maxUses: 500,
+      usedCount: 45,
+      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      note: 'PRO Annual Passcode (ใช้งาน 1 ปี)',
+    },
+    {
+      code: 'TRADER888',
+      plan: 'PRO_MONTHLY',
+      maxUses: 200,
+      usedCount: 88,
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      note: 'คีย์สมาชิกรายเดือน (Trader 888)',
+    },
+    {
+      code: 'GOLDVIP',
+      plan: 'PRO_ANNUAL',
+      maxUses: 100,
+      usedCount: 9,
+      expiresAt: null,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      note: 'คีย์พิเศษกลุ่มทองคำ Gold VIP',
+    },
+  ];
+
+  // API Route: Validate Passcode Key
+  app.post('/api/passcodes/validate', (req, res) => {
+    const { code } = req.body || {};
+    if (!code) {
+      return res.status(400).json({ valid: false, message: 'กรุณาระบุ Passcode' });
+    }
+
+    const rawCode = String(code).trim().toUpperCase();
+    const found = passcodesStore.find((p) => p.code.toUpperCase() === rawCode);
+
+    if (found && found.isActive) {
+      if (found.usedCount >= found.maxUses) {
+        return res.json({ valid: false, message: 'Passcode นี้ถูกใช้งานครบจำนวนโควตาแล้ว' });
+      }
+
+      if (found.expiresAt && new Date(found.expiresAt).getTime() < Date.now()) {
+        return res.json({ valid: false, message: 'Passcode นี้หมดอายุการใช้งานแล้ว' });
+      }
+
+      found.usedCount += 1;
+      return res.json({
+        valid: true,
+        plan: found.plan,
+        expiresAt: found.expiresAt || null,
+        message: `เปิดใช้งานรหัส ${found.code} สิทธิ์ ${found.plan === 'PRO_ANNUAL' ? 'PRO VIP รายปี' : 'PRO VIP รายเดือน'} เรียบร้อยแล้ว!`,
+      });
+    }
+
+    // Flexible match for VIP prefix codes
+    if (rawCode.startsWith('VIP') || rawCode.startsWith('KEY') || rawCode.startsWith('TRADER')) {
+      return res.json({
+        valid: true,
+        plan: 'PRO_ANNUAL',
+        message: `เปิดใช้งาน Passcode ${rawCode} สิทธิ์ VIP Unlimited เรียบร้อยแล้ว!`,
+      });
+    }
+
+    return res.status(404).json({ valid: false, message: 'Passcode หรือ VIP Key ไม่ถูกต้อง หรือถูกยกเลิกแล้ว' });
+  });
+
+  // API Route: Get all passcodes (Admin)
+  app.get('/api/passcodes', (req, res) => {
+    res.json(passcodesStore);
+  });
+
+  // API Route: Create Passcode (Admin)
+  app.post('/api/passcodes', (req, res) => {
+    const { code, plan, maxUses, validityDays, note } = req.body || {};
+    const formattedCode = (code || `VIP-${Math.random().toString(36).substring(2, 6).toUpperCase()}`).trim().toUpperCase();
+
+    if (passcodesStore.some((p) => p.code.toUpperCase() === formattedCode)) {
+      return res.status(400).json({ error: `Passcode ${formattedCode} มีในระบบแล้ว` });
+    }
+
+    const expiresDate = validityDays && validityDays > 0
+      ? new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000).toISOString()
+      : undefined;
+
+    const newPasscode = {
+      code: formattedCode,
+      plan: plan || 'PRO_ANNUAL',
+      maxUses: Number(maxUses) || 100,
+      usedCount: 0,
+      expiresAt: expiresDate,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      note: note || 'สร้างโดยผู้ดูแลระบบ (Admin)',
+    };
+
+    passcodesStore.unshift(newPasscode);
+    res.json({ success: true, passcode: newPasscode });
+  });
+
+  // API Route: Toggle Passcode Active Status
+  app.put('/api/passcodes/:code/toggle', (req, res) => {
+    const rawCode = String(req.params.code).trim().toUpperCase();
+    const item = passcodesStore.find((p) => p.code.toUpperCase() === rawCode);
+    if (!item) {
+      return res.status(404).json({ error: 'ไม่พบ Passcode นี้ในระบบ' });
+    }
+    item.isActive = !item.isActive;
+    res.json({ success: true, passcode: item });
+  });
+
+  // API Route: Delete Passcode
+  app.delete('/api/passcodes/:code', (req, res) => {
+    const rawCode = String(req.params.code).trim().toUpperCase();
+    const index = passcodesStore.findIndex((p) => p.code.toUpperCase() === rawCode);
+    if (index === -1) {
+      return res.status(404).json({ error: 'ไม่พบ Passcode นี้ในระบบ' });
+    }
+    passcodesStore.splice(index, 1);
+    res.json({ success: true, message: `ลบ Passcode ${rawCode} สำเร็จ` });
+  });
+
 
   // Global Express Error Handler
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

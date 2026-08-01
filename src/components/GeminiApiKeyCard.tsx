@@ -4,11 +4,13 @@ import { Key, Check, ExternalLink, ShieldCheck, Eye, EyeOff, Sparkles } from 'lu
 interface GeminiApiKeyCardProps {
   apiKey: string;
   onSaveApiKey: (newKey: string) => void;
+  onOpenPasscode?: () => void;
 }
 
 export const GeminiApiKeyCard: React.FC<GeminiApiKeyCardProps> = ({
   apiKey,
   onSaveApiKey,
+  onOpenPasscode,
 }) => {
   const [inputKey, setInputKey] = useState(apiKey || '');
   const [showKey, setShowKey] = useState(false);
@@ -62,15 +64,28 @@ export const GeminiApiKeyCard: React.FC<GeminiApiKeyCardProps> = ({
           </div>
         </div>
 
-        <a
-          href="https://aistudio.google.com/app/apikey"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-[11px] font-semibold text-cyan-400 hover:text-cyan-300 hover:underline shrink-0 bg-cyan-950/40 px-2.5 py-1 rounded-lg border border-cyan-800/50 transition"
-        >
-          <span>รับ API Key ฟรีที่ Google AI Studio</span>
-          <ExternalLink className="w-3 h-3" />
-        </a>
+        <div className="flex items-center gap-2 flex-wrap">
+          {onOpenPasscode && (
+            <button
+              type="button"
+              onClick={onOpenPasscode}
+              className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-300 hover:text-amber-200 shrink-0 bg-amber-950/50 hover:bg-amber-900/60 px-2.5 py-1 rounded-lg border border-amber-700/60 transition shadow-sm"
+            >
+              <Key className="w-3 h-3 text-amber-400" />
+              <span>🔑 กรอก Passcode / VIP Key</span>
+            </button>
+          )}
+
+          <a
+            href="https://aistudio.google.com/app/apikey"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-[11px] font-semibold text-cyan-400 hover:text-cyan-300 hover:underline shrink-0 bg-cyan-950/40 px-2.5 py-1 rounded-lg border border-cyan-800/50 transition"
+          >
+            <span>รับ API Key ฟรีที่ Google AI Studio</span>
+            <ExternalLink className="w-3 h-3" />
+          </a>
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
