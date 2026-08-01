@@ -5,7 +5,6 @@ import { TrendingUp, History, Sparkles, HelpCircle, User, BarChart2, Compass } f
 interface NavbarProps {
   onOpenHistory: () => void;
   onOpenHelp: () => void;
-  onOpenAuth: () => void;
   onOpenAdmin: () => void;
   onOpenEaStore: () => void;
   onOpenPositionAudit: () => void;
@@ -17,7 +16,6 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({
   onOpenHistory,
   onOpenHelp,
-  onOpenAuth,
   onOpenAdmin,
   onOpenEaStore,
   onOpenPositionAudit,
@@ -102,20 +100,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <HelpCircle className="w-4 h-4 text-emerald-400" />
             <span className="hidden lg:inline">วิธีใช้</span>
-          </button>
-
-          {/* User Profile / Auth Button */}
-          <button
-            onClick={onOpenAuth}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium transition border border-slate-700/60"
-            title="โปรไฟล์ผู้ใช้"
-          >
-            <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px]">
-              {user.isLoggedIn ? user.name.charAt(0).toUpperCase() : <User className="w-3 h-3" />}
-            </div>
-            <span className="hidden md:inline font-semibold">
-              {user.isLoggedIn ? user.name : 'เข้าสู่ระบบ / สมัครสมาชิก'}
-            </span>
           </button>
         </div>
       </div>

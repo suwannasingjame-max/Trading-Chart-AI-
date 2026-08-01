@@ -10,7 +10,6 @@ import { SummaryTable } from './components/SummaryTable';
 import { PositionSizeCalculator } from './components/PositionSizeCalculator';
 import { AnalysisHistoryModal } from './components/AnalysisHistoryModal';
 import { HelpModal } from './components/HelpModal';
-import { AuthModal } from './components/AuthModal';
 import { AdminDashboardModal } from './components/AdminDashboardModal';
 import { EaStoreModal } from './components/EaStoreModal';
 import { PositionAuditModal } from './components/PositionAuditModal';
@@ -40,13 +39,12 @@ export default function App() {
 
   const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
   const [isHelpOpen, setIsHelpOpen] = useState<boolean>(false);
-  const [isAuthOpen, setIsAuthOpen] = useState<boolean>(false);
   const [isAdminOpen, setIsAdminOpen] = useState<boolean>(false);
   const [isEaStoreOpen, setIsEaStoreOpen] = useState<boolean>(false);
   const [isPositionAuditOpen, setIsPositionAuditOpen] = useState<boolean>(false);
   const [isDailyAnalysisOpen, setIsDailyAnalysisOpen] = useState<boolean>(false);
 
-  // User Profile State
+  // User Profile State (Open Access - No Login Required)
   const [user, setUser] = useState<UserProfile>(() => {
     try {
       const saved = localStorage.getItem('trading_chart_ai_user');
@@ -57,13 +55,13 @@ export default function App() {
       console.error('Failed to parse user profile from localStorage', e);
     }
     return {
-      id: 'user_guest_' + Date.now().toString().slice(-4),
-      name: 'นักเทรดทั่วไป',
-      email: 'guest@trader.ai',
-      plan: 'FREE',
+      id: 'usr_active',
+      name: 'Trader AI',
+      email: 'trader@ai.app',
+      plan: 'PRO',
       dailyAnalysisCount: 0,
       dailyQuotaLimit: 9999,
-      isLoggedIn: false,
+      isLoggedIn: true,
     };
   });
 
@@ -77,96 +75,11 @@ export default function App() {
     }
   };
 
-  // Login Handler
-  const handleLoginSuccess = (userData: { id?: string; name: string; email: string; plan?: SubscriptionPlanType; apiKey?: string }) => {
-    const updated: UserProfile = {
-      ...user,
-      id: userData.id || user.id || 'usr_' + Date.now(),
-      name: userData.name,
-      email: userData.email,
-      plan: userData.plan || 'FREE',
-      apiKey: userData.apiKey !== undefined ? userData.apiKey : user.apiKey,
-      dailyQuotaLimit: 9999,
-      isLoggedIn: true,
-    };
-    saveUser(updated);
-  };
-
   // Update API Key handler
   const handleUpdateApiKey = (newKey: string) => {
     const updated: UserProfile = {
       ...user,
       apiKey: newKey,
-    };
-    saveUser(updated);
-  };
-
-  // Sync user profile status from backend (Realtime Pro VIP Sync)
-  const syncUserFromBackend = async (targetEmail?: string) => {
-    const checkEmail = targetEmail || user.email;
-    if (!checkEmail || checkEmail.includes('guest@trader.ai')) return;
-    try {
-      const res = await fetch(`/api/auth/me?email=${encodeURIComponent(checkEmail)}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && data.user) {
-          setUser((prev) => {
-            if (
-              prev.plan !== data.user.plan ||
-              prev.name !== data.user.name ||
-              prev.id !== data.user.id
-            ) {
-              const updated: UserProfile = {
-                ...prev,
-                id: data.user.id || prev.id,
-                name: data.user.name || prev.name,
-                email: data.user.email || prev.email,
-                plan: data.user.plan || prev.plan,
-                dailyQuotaLimit: 9999,
-                isLoggedIn: true,
-              };
-              try {
-                localStorage.setItem('trading_chart_ai_user', JSON.stringify(updated));
-              } catch (e) {}
-              return updated;
-            }
-            return prev;
-          });
-        }
-      }
-    } catch (e) {
-      console.error('Failed to sync user from backend:', e);
-    }
-  };
-
-  // Periodically sync user status when logged in
-  useEffect(() => {
-    if (user.isLoggedIn && user.email) {
-      syncUserFromBackend(user.email);
-      const interval = setInterval(() => {
-        syncUserFromBackend(user.email);
-      }, 4000);
-      return () => clearInterval(interval);
-    }
-  }, [user.isLoggedIn, user.email]);
-
-  // Sync when admin modal closes
-  useEffect(() => {
-    if (!isAdminOpen && user.isLoggedIn && user.email) {
-      syncUserFromBackend(user.email);
-    }
-  }, [isAdminOpen]);
-
-  // Logout Handler
-  const handleLogout = () => {
-    const updated: UserProfile = {
-      id: 'user_guest_' + Date.now().toString().slice(-4),
-      name: 'นักเทรดทั่วไป',
-      email: 'guest@trader.ai',
-      plan: 'FREE',
-      dailyAnalysisCount: 0,
-      dailyQuotaLimit: 9999,
-      isLoggedIn: false,
     };
     saveUser(updated);
   };
@@ -311,7 +224,6 @@ export default function App() {
       <Navbar
         onOpenHistory={() => setIsHistoryOpen(true)}
         onOpenHelp={() => setIsHelpOpen(true)}
-        onOpenAuth={() => setIsAuthOpen(true)}
         onOpenAdmin={() => setIsAdminOpen(true)}
         onOpenEaStore={() => setIsEaStoreOpen(true)}
         onOpenPositionAudit={() => setIsPositionAuditOpen(true)}
@@ -465,10 +377,6 @@ export default function App() {
           Trading Chart AI Analyzer • AI Multi-Timeframe Trading System Analysis
         </p>
         <div className="flex items-center justify-center gap-4 text-[11px]">
-          <button onClick={() => setIsAuthOpen(true)} className="hover:text-emerald-400 underline">
-            บัญชีผู้ใช้งาน
-          </button>
-          <span>•</span>
           <button onClick={() => setIsHelpOpen(true)} className="hover:text-emerald-400 underline">
             คู่มือวิธีใช้
           </button>
@@ -490,16 +398,6 @@ export default function App() {
       <HelpModal
         isOpen={isHelpOpen}
         onClose={() => setIsHelpOpen(false)}
-      />
-
-      <AuthModal
-        isOpen={isAuthOpen}
-        onClose={() => setIsAuthOpen(false)}
-        user={user}
-        onLoginSuccess={handleLoginSuccess}
-        onUpdateApiKey={handleUpdateApiKey}
-        onLogout={handleLogout}
-        isMandatory={false}
       />
 
       <AdminDashboardModal
