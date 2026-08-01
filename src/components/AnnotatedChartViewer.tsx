@@ -84,33 +84,48 @@ export const AnnotatedChartViewer: React.FC<AnnotatedChartViewerProps> = ({ resu
       ctx.font = 'bold 20px sans-serif';
       ctx.fillText(`${result.symbol} • ${selectedTF} • AI Chart Analysis (${signal})`, 20, 38);
 
-      // If overlays are enabled, draw lines on canvas
+      // If overlays are enabled, draw text boxes on canvas (no lines across chart)
       if (showOverlays) {
-        const drawLine = (yPercent: number, color: string, label: string) => {
+        // 1. Draw Summary Setup Text Box Card on canvas (top-left)
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+        ctx.strokeStyle = 'rgba(51, 65, 85, 0.8)';
+        ctx.lineWidth = 2;
+        ctx.fillRect(20, 80, 280, 160);
+        ctx.strokeRect(20, 80, 280, 160);
+
+        ctx.fillStyle = signal === 'BUY' ? '#10B981' : signal === 'SELL' ? '#F43F5E' : '#38BDF8';
+        ctx.font = 'bold 16px sans-serif';
+        ctx.fillText(`AI Signal: ${signal} (${tradeSetup.entryType})`, 32, 108);
+
+        ctx.fillStyle = '#CBD5E1';
+        ctx.font = '13px sans-serif';
+        ctx.fillText(`จุดเข้า Entry: ${tradeSetup.entryPrice}`, 32, 134);
+        ctx.fillText(`ตัดขาดทุน SL: ${tradeSetup.stopLoss}`, 32, 156);
+        ctx.fillText(`ทำกำไร TP1: ${tradeSetup.takeProfit1}`, 32, 178);
+        ctx.fillText(`ทำกำไร TP2/3: ${tradeSetup.takeProfit2} / ${tradeSetup.takeProfit3}`, 32, 200);
+        ctx.fillText(`Risk : Reward: ${tradeSetup.riskRewardRatio}`, 32, 222);
+
+        // 2. Draw price text box badges on the right side
+        const drawLabelBox = (yPercent: number, bgColor: string, textColor: string, label: string) => {
           const y = (yPercent / 100) * h;
+          const boxWidth = 220;
+          const boxHeight = 36;
+          const boxX = w - boxWidth - 20;
+          const boxY = Math.max(70, Math.min(h - 50, y - boxHeight / 2));
 
-          ctx.beginPath();
-          ctx.setLineDash([8, 6]);
-          ctx.lineWidth = 4;
-          ctx.strokeStyle = color;
-          ctx.moveTo(0, y);
-          ctx.lineTo(w, y);
-          ctx.stroke();
+          ctx.fillStyle = bgColor;
+          ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
 
-          // Label Box
-          ctx.fillStyle = color;
-          ctx.fillRect(w - 220, y - 18, 200, 36);
-
-          ctx.fillStyle = '#0F172A';
-          ctx.font = 'bold 16px sans-serif';
-          ctx.fillText(label, w - 210, y + 6);
+          ctx.fillStyle = textColor;
+          ctx.font = 'bold 15px sans-serif';
+          ctx.fillText(label, boxX + 12, boxY + 23);
         };
 
-        drawLine(entryY, '#10B981', `ENTRY: ${tradeSetup.entryPrice}`);
-        drawLine(slY, '#EF4444', `STOP LOSS: ${tradeSetup.stopLoss}`);
-        drawLine(tp1Y, '#38BDF8', `TP1: ${tradeSetup.takeProfit1}`);
-        drawLine(tp2Y, '#F59E0B', `TP2: ${tradeSetup.takeProfit2}`);
-        drawLine(tp3Y, '#A855F7', `TP3: ${tradeSetup.takeProfit3}`);
+        drawLabelBox(entryY, '#10B981', '#0F172A', `จุดเข้า Entry: ${tradeSetup.entryPrice}`);
+        drawLabelBox(slY, '#EF4444', '#FFFFFF', `ตัดขาดทุน SL: ${tradeSetup.stopLoss}`);
+        drawLabelBox(tp1Y, '#38BDF8', '#0F172A', `ทำกำไร TP1: ${tradeSetup.takeProfit1}`);
+        drawLabelBox(tp2Y, '#F59E0B', '#0F172A', `ทำกำไร TP2: ${tradeSetup.takeProfit2}`);
+        drawLabelBox(tp3Y, '#A855F7', '#FFFFFF', `ทำกำไร TP3: ${tradeSetup.takeProfit3}`);
       }
 
       // Draw Watermark Disclaimer Footer on Canvas
@@ -175,7 +190,7 @@ export const AnnotatedChartViewer: React.FC<AnnotatedChartViewerProps> = ({ resu
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
-            <span>เส้นแสดงจุดเทรด</span>
+            <span>กล่องข้อความบนรูป</span>
           </button>
 
           {/* Toggle Key Zones */}
@@ -269,55 +284,92 @@ export const AnnotatedChartViewer: React.FC<AnnotatedChartViewerProps> = ({ resu
                     </div>
                   ))}
 
-                  {/* Entry Line (Green) */}
+                  {/* Floating Trade Setup Summary Text Box Card on Chart */}
+                  <div className="absolute top-3 left-3 z-20 pointer-events-auto bg-slate-950/90 backdrop-blur-md p-3 rounded-xl border border-slate-700/80 shadow-2xl space-y-2 max-w-[220px] text-xs select-none">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                      <span className="font-extrabold text-slate-200 text-[11px] flex items-center gap-1.5">
+                        <span className={`w-2 h-2 rounded-full ${signal === 'BUY' ? 'bg-emerald-400' : signal === 'SELL' ? 'bg-rose-500' : 'bg-slate-400'}`} />
+                        สัญญาณ AI: {signal}
+                      </span>
+                      <span className="text-[10px] font-bold text-amber-300 bg-amber-500/20 px-1.5 py-0.5 rounded border border-amber-500/30">
+                        {tradeSetup.entryType}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+                      <div className="bg-emerald-500/15 p-1.5 rounded-lg border border-emerald-500/30">
+                        <div className="text-[9px] font-bold text-emerald-400">จุดเข้า Entry</div>
+                        <div className="font-mono font-black text-emerald-300">{tradeSetup.entryPrice}</div>
+                      </div>
+                      <div className="bg-rose-500/15 p-1.5 rounded-lg border border-rose-500/30">
+                        <div className="text-[9px] font-bold text-rose-400">ตัดขาดทุน SL</div>
+                        <div className="font-mono font-black text-rose-300">{tradeSetup.stopLoss}</div>
+                      </div>
+                      <div className="bg-cyan-500/15 p-1.5 rounded-lg border border-cyan-500/30">
+                        <div className="text-[9px] font-bold text-cyan-400">ทำกำไร TP1</div>
+                        <div className="font-mono font-black text-cyan-300">{tradeSetup.takeProfit1}</div>
+                      </div>
+                      <div className="bg-amber-500/15 p-1.5 rounded-lg border border-amber-500/30">
+                        <div className="text-[9px] font-bold text-amber-400">ทำกำไร TP2</div>
+                        <div className="font-mono font-black text-amber-300">{tradeSetup.takeProfit2}</div>
+                      </div>
+                    </div>
+
+                    <div className="pt-1 border-t border-slate-800/80 flex items-center justify-between text-[10px]">
+                      <span className="text-slate-400 font-medium">Risk : Reward</span>
+                      <span className="font-mono font-bold text-amber-300 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">{tradeSetup.riskRewardRatio}</span>
+                    </div>
+                  </div>
+
+                  {/* Entry Text Box Badge (Green) */}
                   <div
-                    className="absolute left-0 right-0 border-t-2 border-dashed border-emerald-400 flex items-center justify-end px-3 transition-all"
+                    className="absolute right-3 transition-all z-10"
                     style={{ top: `${entryY}%` }}
                   >
-                    <div className="bg-emerald-500 text-slate-950 text-[11px] font-extrabold px-2.5 py-1 rounded-md shadow-lg flex items-center gap-1.5 -translate-y-1/2">
+                    <div className="bg-emerald-500 text-slate-950 text-[11px] font-extrabold px-3 py-1.5 rounded-lg shadow-2xl border border-emerald-300 flex items-center gap-1.5 -translate-y-1/2">
                       <span className="w-2 h-2 rounded-full bg-slate-950" />
-                      ENTRY: {tradeSetup.entryPrice}
+                      จุดเข้า Entry: {tradeSetup.entryPrice}
                     </div>
                   </div>
 
-                  {/* Stop Loss Line (Red) */}
+                  {/* Stop Loss Text Box Badge (Red) */}
                   <div
-                    className="absolute left-0 right-0 border-t-2 border-dashed border-red-500 flex items-center justify-end px-3 transition-all"
+                    className="absolute right-3 transition-all z-10"
                     style={{ top: `${slY}%` }}
                   >
-                    <div className="bg-red-500 text-slate-100 text-[11px] font-extrabold px-2.5 py-1 rounded-md shadow-lg flex items-center gap-1.5 -translate-y-1/2">
+                    <div className="bg-red-500 text-slate-100 text-[11px] font-extrabold px-3 py-1.5 rounded-lg shadow-2xl border border-red-300 flex items-center gap-1.5 -translate-y-1/2">
                       <span className="w-2 h-2 rounded-full bg-slate-100" />
-                      SL: {tradeSetup.stopLoss}
+                      ตัดขาดทุน SL: {tradeSetup.stopLoss}
                     </div>
                   </div>
 
-                  {/* Take Profit 1 Line (Cyan) */}
+                  {/* Take Profit 1 Text Box Badge (Cyan) */}
                   <div
-                    className="absolute left-0 right-0 border-t-2 border-dashed border-cyan-400 flex items-center justify-end px-3 transition-all"
+                    className="absolute right-3 transition-all z-10"
                     style={{ top: `${tp1Y}%` }}
                   >
-                    <div className="bg-cyan-500 text-slate-950 text-[11px] font-extrabold px-2.5 py-1 rounded-md shadow-lg flex items-center gap-1.5 -translate-y-1/2">
-                      TP1: {tradeSetup.takeProfit1}
+                    <div className="bg-cyan-500 text-slate-950 text-[11px] font-extrabold px-3 py-1.5 rounded-lg shadow-2xl border border-cyan-300 flex items-center gap-1.5 -translate-y-1/2">
+                      ทำกำไร TP1: {tradeSetup.takeProfit1}
                     </div>
                   </div>
 
-                  {/* Take Profit 2 Line (Gold) */}
+                  {/* Take Profit 2 Text Box Badge (Gold) */}
                   <div
-                    className="absolute left-0 right-0 border-t-2 border-dashed border-amber-400 flex items-center justify-end px-3 transition-all"
+                    className="absolute right-3 transition-all z-10"
                     style={{ top: `${tp2Y}%` }}
                   >
-                    <div className="bg-amber-400 text-slate-950 text-[11px] font-extrabold px-2.5 py-1 rounded-md shadow-lg flex items-center gap-1.5 -translate-y-1/2">
-                      TP2: {tradeSetup.takeProfit2}
+                    <div className="bg-amber-400 text-slate-950 text-[11px] font-extrabold px-3 py-1.5 rounded-lg shadow-2xl border border-amber-200 flex items-center gap-1.5 -translate-y-1/2">
+                      ทำกำไร TP2: {tradeSetup.takeProfit2}
                     </div>
                   </div>
 
-                  {/* Take Profit 3 Line (Purple) */}
+                  {/* Take Profit 3 Text Box Badge (Purple) */}
                   <div
-                    className="absolute left-0 right-0 border-t-2 border-dashed border-purple-400 flex items-center justify-end px-3 transition-all"
+                    className="absolute right-3 transition-all z-10"
                     style={{ top: `${tp3Y}%` }}
                   >
-                    <div className="bg-purple-500 text-slate-100 text-[11px] font-extrabold px-2.5 py-1 rounded-md shadow-lg flex items-center gap-1.5 -translate-y-1/2">
-                      TP3: {tradeSetup.takeProfit3}
+                    <div className="bg-purple-500 text-slate-100 text-[11px] font-extrabold px-3 py-1.5 rounded-lg shadow-2xl border border-purple-300 flex items-center gap-1.5 -translate-y-1/2">
+                      ทำกำไร TP3: {tradeSetup.takeProfit3}
                     </div>
                   </div>
                 </div>
