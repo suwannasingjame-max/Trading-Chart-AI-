@@ -85,32 +85,41 @@ export const PasscodeModal: React.FC<PasscodeModalProps> = ({
     }
     let isMounted = true;
     const loadKeyDetail = async () => {
+      let found: PasscodeKey | null = null;
       try {
         const res = await fetch('/api/passcodes');
         if (res.ok) {
           const list: PasscodeKey[] = await res.json();
-          const found = list.find((p) => p.code.toUpperCase() === user.activatedPasscode?.toUpperCase());
-          if (found && isMounted) {
-            setActivePasscodeDetail({ usedCount: found.usedCount, maxUses: found.maxUses });
-            return;
-          }
+          found = list.find((p) => p.code.toUpperCase() === user.activatedPasscode?.toUpperCase()) || null;
         }
       } catch {}
 
-      try {
-        let stored: PasscodeKey[] = DEFAULT_PASSCODES;
-        const saved = localStorage.getItem('trading_chart_ai_passcodes');
-        if (saved) stored = JSON.parse(saved);
-        const found = stored.find((p) => p.code.toUpperCase() === user.activatedPasscode?.toUpperCase());
-        if (found && isMounted) {
-          setActivePasscodeDetail({ usedCount: found.usedCount, maxUses: found.maxUses });
+      if (!found) {
+        try {
+          let stored: PasscodeKey[] = DEFAULT_PASSCODES;
+          const saved = localStorage.getItem('trading_chart_ai_passcodes');
+          if (saved) stored = JSON.parse(saved);
+          found = stored.find((p) => p.code.toUpperCase() === user.activatedPasscode?.toUpperCase()) || null;
+        } catch {}
+      }
+
+      if (found && isMounted) {
+        setActivePasscodeDetail({ usedCount: found.usedCount, maxUses: found.maxUses });
+
+        // If usedCount has reached or exceeded maxUses or key is inactive, auto deactivate VIP
+        if (found.usedCount >= found.maxUses || !found.isActive) {
+          const code = user.activatedPasscode;
+          onDeactivatePasscode();
+          setErrorMsg(
+            `License Key (${code}) ถูกใช้งานครบจำนวนสิทธิ์แล้ว (${found.usedCount}/${found.maxUses} สิทธิ์) ไม่สามารถใช้งานต่อได้อีกต่อไป กรุณากรอก License Key ใหม่`
+          );
         }
-      } catch {}
+      }
     };
 
     loadKeyDetail();
     return () => { isMounted = false; };
-  }, [user.activatedPasscode, isOpen]);
+  }, [user.activatedPasscode, isOpen, onDeactivatePasscode]);
 
   if (!isOpen) return null;
 
@@ -167,7 +176,7 @@ export const PasscodeModal: React.FC<PasscodeModalProps> = ({
           if (matched.usedCount >= matched.maxUses) {
             validatedData = {
               valid: false,
-              message: 'Passcode นี้ถูกใช้งานครบจำนวนโควตาแล้ว',
+              message: `Passcode ${matched.code} ถูกใช้งานครบจำนวนสิทธิ์แล้ว (${matched.usedCount}/${matched.maxUses} สิทธิ์) ไม่สามารถเปิดใช้งานได้อีกต่อไป กรุณากรอก License Key ใหม่`,
             };
           } else if (matched.expiresAt && new Date(matched.expiresAt).getTime() < Date.now()) {
             validatedData = {

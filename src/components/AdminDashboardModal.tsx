@@ -899,12 +899,13 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                           (p.note || '').toLowerCase().includes(searchTerm.toLowerCase())
                       )
                       .map((p) => {
+                        const isExhausted = p.usedCount >= p.maxUses;
                         const usagePercent = Math.min(100, Math.round((p.usedCount / p.maxUses) * 100));
                         return (
                           <tr key={p.code} className="hover:bg-slate-800/40">
                             <td className="p-3">
                               <div className="flex items-center gap-2">
-                                <span className="font-mono font-black text-amber-300 text-sm tracking-wider">
+                                <span className={`font-mono font-black text-sm tracking-wider ${isExhausted ? 'text-rose-400 line-through opacity-85' : 'text-amber-300'}`}>
                                   {p.code}
                                 </span>
                                 <button
@@ -933,12 +934,16 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                             </td>
                             <td className="p-3">
                               <div className="space-y-1">
-                                <span className="font-mono text-amber-300 font-bold bg-slate-950 px-2 py-0.5 rounded border border-slate-800 inline-block">
-                                  {p.usedCount} / {p.maxUses} สิทธิ์
+                                <span className={`font-mono font-bold px-2 py-0.5 rounded border inline-block ${
+                                  isExhausted
+                                    ? 'text-rose-300 bg-rose-950/60 border-rose-500/40'
+                                    : 'text-amber-300 bg-slate-950 border-slate-800'
+                                }`}>
+                                  {p.usedCount} / {p.maxUses} สิทธิ์ {isExhausted && '(เต็มแล้ว)'}
                                 </span>
                                 <div className="w-24 h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
                                   <div
-                                    className="h-full bg-gradient-to-r from-emerald-500 to-amber-500"
+                                    className={`h-full ${isExhausted ? 'bg-rose-500' : 'bg-gradient-to-r from-emerald-500 to-amber-500'}`}
                                     style={{ width: `${usagePercent}%` }}
                                   />
                                 </div>
@@ -948,12 +953,14 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                               <button
                                 onClick={() => handleTogglePasscodeActive(p.code)}
                                 className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition ${
-                                  p.isActive
-                                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/30'
-                                    : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
+                                  !p.isActive
+                                    ? 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
+                                    : isExhausted
+                                    ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 hover:bg-rose-500/30'
+                                    : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/30'
                                 }`}
                               >
-                                {p.isActive ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+                                {!p.isActive ? 'ปิดใช้งาน' : isExhausted ? 'สิทธิ์เต็มแล้ว' : 'เปิดใช้งาน'}
                               </button>
                             </td>
                             <td className="p-3 font-mono text-slate-400 text-[11px]">

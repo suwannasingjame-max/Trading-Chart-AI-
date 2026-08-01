@@ -1584,11 +1584,14 @@ ${chartImageBase64 ? `[ผู้ใช้แนบรูปภาพกราฟ
 
     if (found && found.isActive) {
       if (found.usedCount >= found.maxUses) {
-        return res.json({ valid: false, message: 'Passcode นี้ถูกใช้งานครบจำนวนโควตาแล้ว' });
+        return res.status(400).json({
+          valid: false,
+          message: `Passcode ${found.code} ถูกใช้งานครบจำนวนสิทธิ์แล้ว (${found.usedCount}/${found.maxUses} สิทธิ์) ไม่สามารถเปิดใช้งานได้อีกต่อไป กรุณากรอก License Key ใหม่`,
+        });
       }
 
       if (found.expiresAt && new Date(found.expiresAt).getTime() < Date.now()) {
-        return res.json({ valid: false, message: 'Passcode นี้หมดอายุการใช้งานแล้ว' });
+        return res.status(400).json({ valid: false, message: `Passcode ${found.code} หมดอายุการใช้งานแล้ว กรุณากรอก License Key ใหม่` });
       }
 
       found.usedCount += 1;
