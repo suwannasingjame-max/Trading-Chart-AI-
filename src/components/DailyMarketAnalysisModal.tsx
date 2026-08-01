@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { DailyMarketAnalysisResult, UserProfile } from '../types';
+import { compressImageDataUrl } from '../lib/geminiAnalyzer';
 import {
   X,
   Upload,
@@ -78,12 +79,14 @@ export const DailyMarketAnalysisModal: React.FC<DailyMarketAnalysisModalProps> =
     const activeSymbol = symbol === 'CUSTOM' ? (customSymbol.trim() || 'Custom Asset') : symbol;
 
     try {
+      const compressedImage = chartImage ? await compressImageDataUrl(chartImage) : null;
+
       const response = await fetch('/api/daily-analysis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           symbol: activeSymbol,
-          chartImageBase64: chartImage,
+          chartImageBase64: compressedImage,
           customNotes,
           customApiKey: user?.apiKey,
         }),

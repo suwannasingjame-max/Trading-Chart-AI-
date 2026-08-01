@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChartImageInput, StrategyType, AnalysisResult, UserProfile, SubscriptionPlanType, AnalysisMode } from './types';
+import { compressAllChartImages, runClientGeminiAnalysis } from './lib/geminiAnalyzer';
 import { SAMPLE_PRESETS, SCALPING_SAMPLE_PRESETS, SamplePreset } from './data/samplePresets';
 import { Navbar } from './components/Navbar';
 import { StrategySelector } from './components/StrategySelector';
@@ -149,66 +150,96 @@ export default function App() {
 
     setIsLoading(true);
     setErrorMsg(null);
-    setLoadingStep('กำลังโหลดรูปภาพและเตรียมข้อมูลส่ง AI...');
+    setLoadingStep('กำลังบีบอัดรูปภาพและเตรียมข้อมูลส่ง AI...');
 
     try {
+      // 1. Compress base64 images so they are lightweight (< 1MB total instead of 15MB+)
+      const optimizedImages = await compressAllChartImages(images);
+
       const stepText = analysisMode === 'SCALPING'
         ? 'กำลังประมวลผลโครงสร้างราคาสายซิ่ง 6 Timeframes (H4, H1, M30, M15, M5, M1) เพื่อเข้าเทรดสไนเปอร์ M1...'
         : 'กำลังประมวลผลโครงสร้างราคา Multi-Timeframe (H4 → H1 → M15)...';
       
-      setTimeout(() => setLoadingStep(stepText), 1000);
-      setTimeout(() => setLoadingStep(`วิเคราะห์ตามระบบ ${strategy} (ค้นหาจุดเด้ง / SL แคบ / R:R สูง)...`), 2500);
+      setTimeout(() => setLoadingStep(stepText), 800);
+      setTimeout(() => setLoadingStep(`วิเคราะห์ตามระบบ ${strategy} (ค้นหาจุดเด้ง / SL แคบ / R:R สูง)...`), 2200);
 
-      const response = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          h4Image: images.h4Image,
-          h1Image: images.h1Image,
-          m30Image: images.m30Image,
-          m15Image: images.m15Image,
-          m5Image: images.m5Image,
-          m1Image: images.m1Image,
-          strategy,
-          analysisMode,
-          customNotes,
-          customApiKey: user.apiKey,
-        }),
-      });
+      let result: AnalysisResult | null = null;
 
-      if (!response.ok) {
-        let errorMsgText = 'การวิเคราะห์ล้มเหลว กรุณาลองใหม่อีกครั้ง';
+      // 2. If user provided a custom API Key, try direct client-side Gemini call first
+      if (user.apiKey && user.apiKey.trim()) {
         try {
-          const errorData = await response.json();
-          errorMsgText = errorData.error || errorMsgText;
-        } catch {
-          errorMsgText = `เกิดข้อผิดพลาดจากเซิร์ฟเวอร์ (${response.status} ${response.statusText})`;
+          result = await runClientGeminiAnalysis({
+            images: optimizedImages,
+            strategy,
+            analysisMode,
+            customNotes,
+            apiKey: user.apiKey,
+          });
+        } catch (clientErr: any) {
+          console.warn('Direct client-side Gemini call encountered an issue, trying server endpoint:', clientErr?.message);
         }
-        throw new Error(errorMsgText);
       }
 
-      const resultData = await response.json();
-      const result: AnalysisResult = {
-        ...resultData,
-        analysisMode,
-      };
+      // 3. Fallback to server endpoint if client call was skipped or failed
+      if (!result) {
+        const response = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            h4Image: optimizedImages.h4Image,
+            h1Image: optimizedImages.h1Image,
+            m30Image: optimizedImages.m30Image,
+            m15Image: optimizedImages.m15Image,
+            m5Image: optimizedImages.m5Image,
+            m1Image: optimizedImages.m1Image,
+            strategy,
+            analysisMode,
+            customNotes,
+            customApiKey: user.apiKey,
+          }),
+        });
 
-      setCurrentAnalysis(result);
-      saveToHistory(result);
+        if (!response.ok) {
+          let errorMsgText = 'การวิเคราะห์ล้มเหลว กรุณาลองใหม่อีกครั้ง';
+          try {
+            const errorData = await response.json();
+            errorMsgText = errorData.error || errorMsgText;
+          } catch {
+            errorMsgText = `เกิดข้อผิดพลาดจากเซิร์ฟเวอร์ (${response.status} ${response.statusText})`;
+          }
 
-      // Increment Quota if Free plan
-      if (user.plan === 'FREE') {
-        const updatedUser = {
-          ...user,
-          dailyAnalysisCount: user.dailyAnalysisCount + 1,
-        };
-        saveUser(updatedUser);
+          // If server failed (e.g. 500 on Vercel) and user has API key, retry client side
+          if (user.apiKey && user.apiKey.trim()) {
+            result = await runClientGeminiAnalysis({
+              images: optimizedImages,
+              strategy,
+              analysisMode,
+              customNotes,
+              apiKey: user.apiKey,
+            });
+          } else {
+            throw new Error(
+              `${errorMsgText} • หากคุณใช้งานผ่าน Vercel / เว็บไซต์ที่โฮสต์ภายนอก กรุณากรอก Google Gemini API Key ส่วนตัวในกล่องสีทองด้านบนเพื่อเปิดการวิเคราะห์ AI ฟรีได้ทันที!`
+            );
+          }
+        } else {
+          const resultData = await response.json();
+          result = {
+            ...resultData,
+            analysisMode,
+          };
+        }
       }
 
-      // Scroll to results smooth
-      setTimeout(() => {
-        document.getElementById('analysis-result-section')?.scrollIntoView({ behavior: 'smooth' });
-      }, 300);
+      if (result) {
+        setCurrentAnalysis(result);
+        saveToHistory(result);
+
+        // Scroll to results smooth
+        setTimeout(() => {
+          document.getElementById('analysis-result-section')?.scrollIntoView({ behavior: 'smooth' });
+        }, 300);
+      }
 
     } catch (err: any) {
       console.error('Analysis error:', err);
