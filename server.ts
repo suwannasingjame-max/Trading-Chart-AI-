@@ -338,6 +338,80 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
     }
   });
 
+  // Auth: Google Login & Single Sign-On Endpoint
+  app.post('/api/auth/google', (req, res) => {
+    try {
+      const { email, name, picture, googleId, credential } = req.body || {};
+
+      if (!email) {
+        return res.status(400).json({ error: 'ไม่พบข้อมูลอีเมลจากบัญชี Google' });
+      }
+
+      const cleanEmail = String(email).trim().toLowerCase();
+      const cleanName = String(name || cleanEmail.split('@')[0]).trim();
+
+      let foundUser = registeredUsersDB.find((u) => u.email.toLowerCase() === cleanEmail);
+
+      if (!foundUser) {
+        // Auto register new user signing in via Google
+        const preGranted = adminUsers.find((u) => u.email.toLowerCase() === cleanEmail);
+        const assignedPlan = preGranted?.plan || 'FREE';
+
+        foundUser = {
+          id: preGranted?.id || 'usr_g_' + Date.now(),
+          name: cleanName,
+          email: cleanEmail,
+          passwordHash: 'GOOGLE_OAUTH_' + (googleId || Date.now()),
+          joinedAt: new Date().toISOString(),
+          plan: assignedPlan,
+        };
+        registeredUsersDB.push(foundUser);
+
+        if (!preGranted) {
+          adminUsers.unshift({
+            id: foundUser.id,
+            name: foundUser.name,
+            email: foundUser.email,
+            plan: assignedPlan,
+            dailyAnalysisCount: 0,
+            dailyQuotaLimit: 9999,
+            joinedAt: foundUser.joinedAt,
+            lastActive: new Date().toISOString(),
+            isLoggedIn: true,
+          });
+        }
+      }
+
+      // Update active status in admin list
+      const nowIso = new Date().toISOString();
+      const adminIdx = adminUsers.findIndex((u) => u.email.toLowerCase() === cleanEmail);
+      let userPlan = foundUser.plan || 'FREE';
+
+      if (adminIdx >= 0) {
+        adminUsers[adminIdx].lastActive = nowIso;
+        adminUsers[adminIdx].isLoggedIn = true;
+        adminUsers[adminIdx].name = cleanName;
+        userPlan = adminUsers[adminIdx].plan || userPlan;
+      }
+
+      return res.json({
+        success: true,
+        user: {
+          id: foundUser.id,
+          name: cleanName,
+          email: cleanEmail,
+          plan: userPlan,
+          isLoggedIn: true,
+          picture: picture || undefined,
+          authProvider: 'google',
+        },
+      });
+    } catch (err: any) {
+      console.error('Error in /api/auth/google:', err);
+      return res.status(500).json({ error: 'เกิดข้อผิดพลาดในการเข้าสู่ระบบด้วย Google: ' + (err.message || 'Server error') });
+    }
+  });
+
   // Auth: Check Current User Info / Status Endpoint
   app.get('/api/auth/me', (req, res) => {
     const email = (req.query.email || '').toString().trim().toLowerCase();
@@ -669,35 +743,35 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
       // Strategy specific system prompts & instructions in Thai
       const strategyGuide: Record<string, string> = {
-        SMC: `เน้นวิเคราะห์ Smart Money Concepts (SMC):
-- ${isScalpMode ? 'TF H4, H1, M30' : 'TF H4'}: หา Higher Timeframe Bias, Major Market Structure (HH/HL/LH/LL), Major Order Block (OB), Liquidity Pool (BSL/SSL).
-- ${isScalpMode ? 'TF M15, M5' : 'TF H1'}: หา Inducement, Fair Value Gap (FVG), Change of Character (ChoCH), Break of Structure (BoS), Liquidity Sweep และจุดพักตัวย่อเด้ง.
-- ${isScalpMode ? 'TF M1' : 'TF M15'}: หา จุดเข้าเทรด Sniper Trigger M1 (Micro OB / FVG tap, M1 ChoCH + BoS, Wick Rejection Spike) พร้อมคำนวณ Entry, SL ที่แคบมาก (โดนลากน้อย) และ TP1, TP2, TP3 (กำไรเยอะ R:R สูง).`,
+        SMC: `เน้นวิเคราะห์ Smart Money Concepts (SMC) ขั้นสูงแม่นยำสูง:
+- ${isScalpMode ? 'TF H4, H1, M30' : 'TF H4'}: ระบุ HTF Market Structure (Major Higher High / Higher Low / Lower High / Lower Low), HTF Bias, Major Unmitigated Order Block (OB), Key Supply/Demand Zone, และ Liquidity Pools (Equal Highs/Lows, Buy-side / Sell-side Liquidity BSL/SSL).
+- ${isScalpMode ? 'TF M15, M5' : 'TF H1'}: ระบุ Inducement (IDM), Fair Value Gap (FVG), Change of Character (ChoCH), Break of Structure (BoS), Liquidity Sweep (กวาดไส้เทียนล่อเม่า) และ Premium vs. Discount Pricing Array.
+- ${isScalpMode ? 'TF M1' : 'TF M15'}: ค้นหาจุดเข้าเทรด Sniper Trigger M1/M15 (Micro OB + FVG Imbalance fill, M1 ChoCH, Rejection Wick Spike) พร้อมคำนวณ Entry, SL ที่วางปลอดภัยพ้นโครงสร้างสำคัญ + Buffer และ TP1 (Local Liquidity), TP2 (Major Level), TP3 (Extended Target).`,
         
-        PRICE_ACTION: `เน้นวิเคราะห์ Classic Price Action & Chart Patterns:
-- ${isScalpMode ? 'TF H4, H1, M30' : 'TF H4'}: แนวรับแนวต้านสำคัญ (Key Support & Resistance), Major Trendlines, Dominant Trend ภาพกว้าง.
-- ${isScalpMode ? 'TF M15, M5' : 'TF H1'}: รูปแบบกราฟ (Chart Patterns เช่น Head & Shoulders, Double Top/Bottom, Triangles, Channel), Candlestick Pattern (Pinbar, Engulfing).
-- ${isScalpMode ? 'TF M1' : 'TF M15'}: จุดเข้า Breakout & Retest หรือ Bounce จาก Key Level หา Entry M1, SL และ TP.`,
+        PRICE_ACTION: `เน้นวิเคราะห์ Classic Price Action & Micro Candlestick Geometry ขั้นสูง:
+- ${isScalpMode ? 'TF H4, H1, M30' : 'TF H4'}: สแกนแนวรับแนวต้านระดับสถาบัน (Key Horizontal S/R & Flip Zones), Dominant Trendline & Channel.
+- ${isScalpMode ? 'TF M15, M5' : 'TF H1'}: สแกนรูปแบบกราฟ (Chart Patterns: Head & Shoulders, Double/Triple Top-Bottom, Ascending/Descending Triangles, Flags, Pennants) และ Candlestick Rejection Patterns (Pinbar wicks >= 60%, Bullish/Bearish Engulfing, Inside Bar Breakout).
+- ${isScalpMode ? 'TF M1' : 'TF M15'}: ค้นหาจุดเข้า Breakout & Retest หรือ Bounce จาก Key Level พร้อม Entry, SL (เลยไส้แท่งเทียนกลับตัว) และ TP1, TP2, TP3.`,
 
-        ICT: `เน้นวิเคราะห์ Inner Circle Trader (ICT Methodology):
-- ${isScalpMode ? 'TF H4, H1, M30' : 'TF H4'}: Daily/H4 Bias, Liquidity Voids, Key Benchmark Levels.
-- ${isScalpMode ? 'TF M15, M5' : 'TF H1'}: Power of 3 (AMD: Accumulation, Manipulation, Distribution), Judas Swing, Kill Zone setup, Fair Value Gap (FVG).
-- ${isScalpMode ? 'TF M1' : 'TF M15'}: Optimal Trade Entry (OTE - 61.8% to 79% Fibonacci retracement), Silver Bullet setup, Displacement Confirmation, Entry M1, SL, TP.`,
+        ICT: `เน้นวิเคราะห์ Inner Circle Trader (ICT Methodology) แม่นยำระดับอัลกอริทึม:
+- ${isScalpMode ? 'TF H4, H1, M30' : 'TF H4'}: HTF Daily/H4 Bias, Liquidity Voids, Equilibrium, BSL/SSL Sweeps.
+- ${isScalpMode ? 'TF M15, M5' : 'TF H1'}: Power of 3 (AMD: Accumulation -> Manipulation/Judas Swing -> Distribution), Kill Zone Sessions (London / NY Killzones), Fair Value Gap (FVG), Displacement.
+- ${isScalpMode ? 'TF M1' : 'TF M15'}: Optimal Trade Entry (OTE - 61.8% ถึง 79% Fibonacci Level), ICT Silver Bullet Setup, Displacement Confirmation, Entry M1, SL, TP.`,
 
-        SUPPLY_DEMAND: `เน้นวิเคราะห์ Supply & Demand Imbalance:
-- ${isScalpMode ? 'TF H4, H1, M30' : 'TF H4'}: Fresh Supply & Demand Zones, Rally-Base-Drop (RBD), Drop-Base-Rally (DBR), Rally-Base-Rally (RBR), Drop-Base-Drop (DBD).
-- ${isScalpMode ? 'TF M15, M5' : 'TF H1'}: Zone Quality Score (Freshness, Strength of Departure, Time at Base), Zone Flips.
-- ${isScalpMode ? 'TF M1' : 'TF M15'}: Confirmation Touch / Drop into Zone M1, Entry at Zone Margin M1, SL outside zone Buffer, TP at Next Opposing Zone.`,
+        SUPPLY_DEMAND: `เน้นวิเคราะห์ Supply & Demand Imbalance & Institutional Order Flow:
+- ${isScalpMode ? 'TF H4, H1, M30' : 'TF H4'}: Fresh Unmitigated Supply & Demand Zones (Rally-Base-Drop, Drop-Base-Rally, Rally-Base-Rally, Drop-Base-Drop).
+- ${isScalpMode ? 'TF M15, M5' : 'TF H1'}: ประเมิน Zone Quality Score (ความสดใหม่ Freshness, ความรุนแรงในการออกจากโซน Departure Strength, แท่งกักตัว Time at Base), Swap/Flip Zones.
+- ${isScalpMode ? 'TF M1' : 'TF M15'}: Zone Tap & Micro Rejection M1/M15, Entry ที่ขอบโซน (Zone Margin), SL วางเลยขอบโซน + ATR Buffer, TP ที่ opposing fresh zone.`,
 
-        BREAKOUT_TREND: `เน้นวิเคราะห์ Trend Following & Breakout Strategy:
-- ${isScalpMode ? 'TF H4, H1, M30' : 'TF H4'}: Directional Momentum, Moving Averages / Higher Highs.
-- ${isScalpMode ? 'TF M15, M5' : 'TF H1'}: Compression / Consolidation Box, Key Resistance/Support Trigger line.
-- ${isScalpMode ? 'TF M1' : 'TF M15'}: High Volume Breakout Confirmation M1, Pullback Retest M1, Entry, SL, TP1, TP2, TP3.`,
+        BREAKOUT_TREND: `เน้นวิเคราะห์ Trend Following & Momentum Breakout Strategy:
+- ${isScalpMode ? 'TF H4, H1, M30' : 'TF H4'}: Directional Momentum, Exponential Moving Averages Alignment (EMA 20/50/200), Higher Highs / Lower Lows Sequence.
+- ${isScalpMode ? 'TF M15, M5' : 'TF H1'}: Volatility Compression / Consolidation Box, Key Resistance/Support Trigger Line.
+- ${isScalpMode ? 'TF M1' : 'TF M15'}: High Volume Expansion / Breakout Confirmation, Pullback Retest M1, Entry, SL, TP1, TP2, TP3.`,
 
-        HARMONIC: `เน้นวิเคราะห์ Harmonic & Fibonacci Patterns:
-- ${isScalpMode ? 'TF H4, H1, M30' : 'TF H4'}: Macro Trend & Fibonacci Retracement / Extension levels.
-- ${isScalpMode ? 'TF M15, M5' : 'TF H1'}: Potential Reversal Zone (PRZ), Harmonic Patterns (Gartley, Bat, Butterfly, Crab, ABCD).
-- ${isScalpMode ? 'TF M1' : 'TF M15'}: Reversal Candle Confirmation at PRZ M1, Entry M1, SL (Beyond X), TP1 (38.2% Fib), TP2 (61.8% Fib).`
+        HARMONIC: `เน้นวิเคราะห์ Harmonic Patterns & Precise Fibonacci Ratios:
+- ${isScalpMode ? 'TF H4, H1, M30' : 'TF H4'}: Macro Trend & Primary Fibonacci Retracement / Extension Array.
+- ${isScalpMode ? 'TF M15, M5' : 'TF H1'}: Potential Reversal Zone (PRZ), Harmonic Structure (Gartley, Bat, Butterfly, Crab, Deep Crab, ABCD Pattern).
+- ${isScalpMode ? 'TF M1' : 'TF M15'}: Reversal Candlestick Trigger at PRZ D-Point, Entry M1, SL (Beyond Point X), TP1 (38.2% Fib), TP2 (61.8% Fib), TP3 (100% Fib).`
       };
 
       const parts: any[] = [];
@@ -788,21 +862,34 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
 - สแกนดูจุดเด้ง Rejection Spike / Micro ChoCH / M1 Order Block / M1 FVG`
         : `คุณกำลังวิเคราะห์ในโหมดมาตรฐาน Multi-timeframe (H4, H1, M15)`;
 
-      const systemPrompt = `คุณคือ Pro Senior Financial Trading Analyst และ AI Trading Expert ผู้เชี่ยวชาญระดับสถาบัน (Institutional Trader).
-หน้าที่ของคุณคือ ${modeHeaderPrompt} ด้วยระบบการเทรด "${strategy}" ตามคำแนะนำต่อไปนี้:
+      const systemPrompt = `คุณคือ Pro Senior Financial Trading Analyst และ AI Trading Expert ผู้เชี่ยวชาญระดับสถาบัน (Institutional Multi-Timeframe Quant Analyst).
+หน้าที่ของคุณคือ ${modeHeaderPrompt} ด้วยระบบการเทรด "${strategy}" ตามหลักเกณฑ์ที่แม่นยำสูงสไตล์มืออาชีพ:
 
 ${strategyGuide[strategy] || strategyGuide['SMC']}
 
-${customNotes ? `คำแนะนำเพิ่มเติมจากผู้ใช้: "${customNotes}"` : ''}
+${customNotes ? `คำแนะนำ/หมายเหตุเพิ่มเติมจากผู้ใช้งาน: "${customNotes}"` : ''}
 
-คำแนะนำสำคัญในการวิเคราะห์:
-1. วิเคราะห์ราคาและแนวโน้มจากกราฟในรูปอย่างสมจริง แม่นยำ
-2. ตรวจหาตัวย่อ/ชื่อคู่เงิน (เช่น XAUUSD, EURUSD, BTCUSD) จากรูปภาพ ถ้าไม่มีให้ระบุประเภทสินทรัพย์ตามทรงกราฟ
-3. ประเมินว่าสัญญาณเทรดเป็น "BUY", "SELL" หรือ "NO_TRADE" (ถ้าโครงสร้างราคาไม่ชัดเจนหรือเสี่ยงสูงเกินไป ให้ตอบ NO_TRADE)
-4. คำนวณจุด Entry, SL, TP1, TP2, TP3 และ Risk:Reward Ratio (R:R) ที่แม่นยำ สมเหตุสมผลตามโครงสร้างราคาจริงในภาพ ${isScalpMode ? '(สำหรับสายซิ่ง เน้นอิงกรอบ H4/M30 เพื่อความแม่นยำ แล้วเลือกจุดเข้า M1 ที่ SL แคบ โดนลากน้อย R:R สูง)' : ''}
-5. สร้าง "ตารางสรุปเงื่อนไขและเหตุผลประกอบการตัดสินใจ" (Summary Conditions) ให้เป็นขั้นตอน เช่น Alignment ${isScalpMode ? 'H4/M30 -> M15/M5' : 'H4 -> H1'}, Liquidity Sweep, FVG Fill, Entry Trigger ${isScalpMode ? 'M1' : 'M15'}
-6. ระบุจุด invalidationScenario (เมื่อไหร่ที่แผนเทรดนี้จะยกเลิก) และ tradeManagement (การบริหารออเดอร์ เช่น เลื่อน SL มา BE เมื่อถึง TP1)
-7. ประมาณค่าตำแหน่ง visual overlay (0-100%) บนภาพกราฟ ${isScalpMode ? 'M1' : 'M15'} เพื่อนำไปวาดเส้น Entry (เขียว), SL (แดง), TP (ฟ้า) และกล่อง Order Block / FVG บนหน้าจอให้ผู้ใช้เห็นชัดเจน
+กฎเหล็ก 8 ข้อเพื่อความแม่นยำสูงสุด (Institutional Precision Protocol):
+1. อ่านตัวเลขอักขระและราคาบนแกน Y (Price Scale) และแกน X (Time/Date Scale) จากรูปภาพกราฟให้ละเอียดสมจริงที่สุด
+2. ตรวจสอบชื่อสินทรัพย์/คู่เงิน (เช่น XAU/USD, EUR/USD, BTC/USDT) จากส่วนหัวหรือ watermark บนกราฟ ถ้าไม่มีให้ระบุตามลักษณะทรงกราฟและแท่งเทียน
+3. การตัดสินใจเลือกสัญญาณ (Signal Decision):
+   - ตอบ "BUY" เมื่อโครงสร้างกราฟ Higher Timeframe ขาขึ้นชัดเจน หรือมีการกวาด Liquidity Sweep ที่แนวรับ/Demand Zone สำเร็จพร้อมแท่งเทียนกลับตัว
+   - ตอบ "SELL" เมื่อโครงสร้างกราฟ Higher Timeframe ขาลงชัดเจน หรือมีการกวาด Liquidity Sweep ที่แนวต้าน/Supply Zone สำเร็จพร้อมแท่งเทียนกลับตัว
+   - ตอบ "NO_TRADE" หากกราฟอยู่ในสภาวะ Sideways ไร้ทิศทาง, อยู่กลางกรอบราคาแบบไม่มีความได้เปรียบ, หรือสัญญาณขัดแย้งกันรุนแรงระหว่าง Timeframe ใหญ่และย่อย
+4. คำนวณจุดเทรดอย่างแม่นยำสูงสุดตามโครงสร้างราคาจริง (Precision Trading Levels):
+   - Entry Price: จุดเข้าเทรดที่ได้เปรียบที่สุด (ที่ขอบ Order Block, FVG, หรือ Rejection Level)
+   - Stop Loss (SL): วางจุดตัดขาดทุนพ้นโครงสร้างราคาพ้น Swing High/Low + Buffer เล็กน้อยเพื่อป้องกัน Stop Hunt
+   - Take Profit 1 (TP1): จุดทำกำไรแรกอิงตาม Local Structural High/Low
+   - Take Profit 2 (TP2): จุดทำกำไรที่สองอิงตาม Major Supply/Demand Zone
+   - Take Profit 3 (TP3): จุดทำกำไรระยะยาวอิงตาม Major Swing Target / Extension
+   - Risk:Reward Ratio (R:R): ต้องสอดคล้องกับระยะ SL และ TP จริง (เน้น R:R >= 1:2 ขึ้นไป)
+5. คำนวณคะแนนความมั่นใจ (confidenceScore 0-100%):
+   - 85% - 98%: เมื่อเงื่อนไขผ่านครบ 3-4 ข้อสอดคล้องทั้ง HTF และ LTF
+   - 65% - 80%: เมื่อเงื่อนไขผ่าน 2-3 ข้อ มีความเสี่ยงปานกลาง
+   - ต่ำกว่า 60%: ควรตั้งสัญญาณเป็น NO_TRADE
+6. สร้าง "ตารางสรุปเงื่อนไขและเหตุผลประกอบการตัดสินใจ" (Summary Conditions) แจกแจงทีละขั้นตอนอย่างเป็นระบบ
+7. ระบุสถานการณ์ที่แผนเทรดนี้จะยกเลิก (invalidationScenario) และแนวทางการบริหารออเดอร์ (tradeManagement เช่น การเลื่อน SL มาคุ้มทุน Break-Even เมื่อราคาถึง TP1)
+8. คำนวณพิกัด visual overlayCoords (0-100%) บนภาพกราฟให้ตรงกับระดับราคา Entry, SL, TP1, TP2, TP3 และวาดกล่อง Key Zones (OB/FVG) เพื่อแสดงผลบนหน้าจอได้อย่างแม่นยำสวยงาม
 
 โปรดส่งออกผลลัพธ์เป็น JSON ภาษาไทยตามโครงสร้างนี้อย่างเคร่งครัด:`;
 
@@ -1279,26 +1366,31 @@ ${customNotes ? `คำแนะนำเพิ่มเติมจากผู
         }
       }
 
-      const prompt = `คุณคือ AI Head Trader & Market Strategist ประจำสถาบันการเงินระดับโลก 
-ทำหน้าที่วิเคราะห์สภาวะตลาดประจำวัน (Daily Market Regime & Advantage Analysis) สำหรับสินทรัพย์: "${symbol}"
+      const prompt = `คุณคือ AI Head Trader, Chief Market Analyst & Quant Strategist ประจำสถาบันการเงินชั้นนำระดับโลก 
+ทำหน้าที่วิเคราะห์และประเมินสภาวะตลาดประจำวัน (Daily Comprehensive Market Analysis & Statistical Bias) สำหรับสินทรัพย์: "${symbol}"
 ${customNotes ? `หมายเหตุเพิ่มเติมจากเทรดเดอร์: "${customNotes}"` : ''}
+${chartImageBase64 ? `[ผู้ใช้แนบรูปภาพกราฟมาด้วย]: กรุณาสแกนโครงสร้างราคา แท่งเทียน รูปแบบแพทเทิร์น และแนวรับแนวต้านจากภาพกราฟแนบมาผสานวิเคราะห์เพิ่มความแม่นยำ` : `[ไม่ได้แนบรูปภาพ]: ให้ AI ใช้ฐานข้อมูลระบบและความรู้ด้าน Market Dynamics เพื่อวิเคราะห์ภาพรวมตลาด ข่าว วอลุ่ม ช่วงเวลา และ Price Action ให้สมบูรณ์แบบที่สุด`}
 
-เป้าหมายสำคัญ:
-1. ประเมินว่าตลาดกำลังอยู่ในสภาวะใด:
-   - 'STRONG_UPTREND' (เทรนด์ขาขึ้นแข็งแกร่ง)
-   - 'STRONG_DOWNTREND' (เทรนด์ขาลงแข็งแกร่ง)
-   - 'SIDEWAYS_RANGE' (ไซด์เวย์ในกรอบสะสมราคา / Ranging Box)
-   - 'SIDEWAYS_VOLATILE' (ไซด์เวย์ผันผวนสูง / Choppy Expansion)
-   - 'BREAKOUT_PENDING' (กำลังอัดตัวรอการระเบิด Breakout)
+ภารกิจสำคัญในการวิเคราะห์ประเมินภาพรวมประจำวัน:
+1. **ข่าวสารเศรษฐกิจ & ปัจจัยมหภาค (Macro News & Market Sentiment)**:
+   - ประเมินข่าวเศรษฐกิจล่าสุด ตัวเลขเงินเฟ้อ CPI/PPI, อัตราดอกเบี้ย FED/ECB/BOJ, ข่าวการเมือง/สงคราม หรือปัจจัยกระทบหลักสัปดาห์นี้
+   - กำหนด Sentiment Score ('BULLISH' | 'BEARISH' | 'NEUTRAL')
 
-2. ประเมินว่าการเปิดออเดอร์ฝั่งไหนที่จะได้เปรียบตลาดมากที่สุดในวันนี้ (Statistical Advantage):
-   - 'BUY_ADVANTAGE' (ฝั่ง BUY ได้เปรียบสูง เน้นย่อ BUY ตามเทรนด์)
-   - 'SELL_ADVANTAGE' (ฝั่ง SELL ได้เปรียบสูง เน้นเด้ง SELL ตามเทรนด์)
-   - 'WAIT_SIDEWAYS' (ตลาดไซด์เวย์ไร้ทิศทาง แนะนำชะลอการเทรดหรือรอเบรกกรอบ)
-   - 'BOTH_SIDES_RANGE' (เล่นได้ทั้งสองฝั่งตามกรอบแนวรับ-แนวต้าน ไซด์เวย์ชัดเจน)
+2. **วอลุ่มการซื้อขาย & ช่วงเวลาการเปิด-ปิดตลาด (Volume & Trading Sessions Dynamics)**:
+   - ประเมินสภาวะ Liquidity และ วอลุ่มการซื้อขายในตลาด
+   - ระบุช่วงเวลาการเทรดที่ได้เปรียบสูง (London Session, NY Session, NY Killzone) และช่วงเวลาที่ควรหลีกเลี่ยง (Asian Range / Low Volume)
 
-3. ระบุแนวรับสำคัญ (Demand / Support Zones) และแนวต้านสำคัญ (Supply / Resistance Zones) ประจำวัน
-4. วางแผนการเทรดประจำวัน (Daily Trade Plan) ทั้งแผน BUY, แผน SELL และเงื่อนไขที่ไม่ควรเข้าเทรด (No-Trade Rule)
+3. **Price Action, รูปแบบแท่งเทียน & Chart Patterns**:
+   - รูปแบบแท่งเทียนเด่น (Candlestick Pattern เช่น Bullish Engulfing, Bearish Pinbar, Inside Bar, Doji, Morning Star)
+   - รูปแบบโครงสร้างกราฟ (Chart Pattern เช่น Double Bottom, Head & Shoulders, Ascending Triangle, Bull Flag, Ranging Box)
+   - โครงสร้างตลาด (Market Structure: Higher High/Higher Low หรือ Lower High/Lower Low)
+
+4. **สภาวะตลาด & ฝั่งที่ได้เปรียบทางสถิติ (Market Condition & Primary Advantage)**:
+   - สภาวะตลาด ('STRONG_UPTREND' | 'STRONG_DOWNTREND' | 'SIDEWAYS_RANGE' | 'SIDEWAYS_VOLATILE' | 'BREAKOUT_PENDING')
+   - ฝั่งที่ได้เปรียบ ('BUY_ADVANTAGE' | 'SELL_ADVANTAGE' | 'WAIT_SIDEWAYS' | 'BOTH_SIDES_RANGE')
+
+5. **บทสรุปผู้บริหารประจำวัน (Daily Executive Summary)**:
+   - สรุปภาพรวมเชิงลึก สั้น กระชับ แม่นยำ อ่านจบเข้าใจทันทีว่าควรทำอะไรวันนี้
 
 โปรดตอบกลับเป็น JSON บริสุทธิ์เท่านั้น (Pure JSON) ในโครงสร้างดังต่อไปนี้:
 {
@@ -1306,7 +1398,23 @@ ${customNotes ? `หมายเหตุเพิ่มเติมจากเ
   "marketConditionTitle": "ชื่อสภาวะตลาดภาษาไทย เช่น เทรนด์ขาขึ้นแข็งแกร่ง (Strong Uptrend)",
   "preferredSide": "BUY_ADVANTAGE" | "SELL_ADVANTAGE" | "WAIT_SIDEWAYS" | "BOTH_SIDES_RANGE",
   "preferredSideTitle": "หัวข้อฝั่งที่ได้เปรียบภาษาไทย เช่น ฝั่ง BUY ได้เปรียบสูง (Bullish Advantage)",
-  "advantageSummary": "คำอธิบายละเอียดว่าทำไมฝั่งนี้ถึงได้เปรียบ สภาวะโครงสร้างราคาปัจจุบัน โครงสร้าง HH/HL หรือ LH/LL และแรงซื้อขายในตลาด",
+  "advantageSummary": "คำอธิบายละเอียดว่าทำไมฝั่งนี้ถึงได้เปรียบ โครงสร้างราคาปัจจุบัน แรงซื้อขายในตลาด",
+  "dailyExecutiveSummary": "บทสรุปภาพรวมประจำวันเข้มข้น สรุปทิศทางตลาด ปัจจัยหนุน และข้อแนะนำหลักสำหรับวันนี้",
+  "newsAndMacro": {
+    "summary": "สรุปข่าวสารและปัจจัยมหภาคที่มีผลกระทบต่อสินทรัพย์นี้ในปัจจุบัน",
+    "catalysts": ["ข่าวสำคัญ 1 เช่น ดอกเบี้ย FED / ตัวเลข CPI", "ข่าวสำคัญ 2 เช่น สภาพคล่องดอลลาร์"],
+    "sentimentScore": "BULLISH" | "BEARISH" | "NEUTRAL"
+  },
+  "volumeAndSessions": {
+    "sessionAdvice": "คำแนะนำช่วงเวลาการเทรด เช่น เน้นเข้าเทรดช่วง London / NY Session (15:00 - 22:00 น.)",
+    "activeSessionKillzone": "ช่วงเวลา Killzone ที่ผันผวนสูงและมีวอลุ่มมากที่สุด เช่น NY Killzone 19:30 - 21:30 น.",
+    "volumeAnalysis": "สภาวะวอลุ่ม เช่น วอลุ่มการซื้อขายคึกคักในฝั่งซื้อ หรือ วอลุ่มเบาบางรอตัวเลขเศรษฐกิจ"
+  },
+  "priceActionPatterns": {
+    "candlestickPattern": "รูปแบบแท่งเทียนเด่น เช่น Bullish Engulfing บน Timeframe H4 / Pinbar ปฏิเสธราคาที่แนวรับ",
+    "chartPattern": "รูปแบบโครงสร้างกราฟ เช่น Bull Flag / Ascending Triangle / Double Bottom",
+    "marketStructure": "โครงสร้างราคา เช่น สร้าง Higher High และ Higher Low ต่อเนื่องใน H1/H4"
+  },
   "keyLevels": {
     "resistanceZones": ["แนวต้าน 1 / Supply Zone 1", "แนวต้าน 2 / Major Supply"],
     "supportZones": ["แนวรับ 1 / Demand Zone 1", "แนวรับ 2 / Major Demand"],
@@ -1321,7 +1429,8 @@ ${customNotes ? `หมายเหตุเพิ่มเติมจากเ
     "buyPlan": "แผนการเข้า BUY: ถ้าราคาถอยมาบริเวณ ... แล้วเกิดสัญญาณกลับตัว ให้เข้า BUY เป้าหมายที่ ...",
     "sellPlan": "แผนการเข้า SELL: ถ้าราคาปรับขึ้นไปทดสอบ ... แล้วปฏิเสธราคา ให้ SELL เป้าหมายที่ ...",
     "noTradeCondition": "เงื่อนไขการงดเทรด: เช่น หากราคาหลุดแนวรับ ... หรือช่วงก่อนข่าวออก 15 นาที"
-  }
+  },
+  "chartImageAnalysisNote": "การวิเคราะห์เพิ่มเติมจากรูปภาพกราฟแนบ (ถ้าผู้ใช้แนบรูปภาพมา) เช่น 'จากรูปภาพกราฟ พบการยก High ยก Low ชัดเจนใน TF H1 พร้อมแท่ง Pinbar บริเวณ Demand Zone 2380'"
 }`;
 
       parts.push({ text: prompt });
@@ -1365,6 +1474,22 @@ ${customNotes ? `หมายเหตุเพิ่มเติมจากเ
         preferredSide: parsedData.preferredSide || 'WAIT_SIDEWAYS',
         preferredSideTitle: parsedData.preferredSideTitle || 'รอความชัดเจนของสภาวะตลาด',
         advantageSummary: parsedData.advantageSummary || 'ตลาดกำลังอยู่ในช่วงปรับฐาน รอการยืนยันโครงสร้าง',
+        dailyExecutiveSummary: parsedData.dailyExecutiveSummary || 'สภาวะตลาดวันนี้เคลื่อนตัวในกรอบ ให้รักษาวินัยและความได้เปรียบทางสถิติ',
+        newsAndMacro: {
+          summary: parsedData.newsAndMacro?.summary || 'ไม่มีรายงานข่าวรุนแรงพิเศษในขณะนี้ ให้ติดตามตัวเลขเศรษฐกิจตามปฏิทิน',
+          catalysts: Array.isArray(parsedData.newsAndMacro?.catalysts) ? parsedData.newsAndMacro.catalysts : [],
+          sentimentScore: parsedData.newsAndMacro?.sentimentScore || 'NEUTRAL'
+        },
+        volumeAndSessions: {
+          sessionAdvice: parsedData.volumeAndSessions?.sessionAdvice || 'เน้นเข้าเทรดช่วง London / NY Session ที่มีปริมาณการซื้อขายสูง',
+          activeSessionKillzone: parsedData.volumeAndSessions?.activeSessionKillzone || 'London Open (14:00-17:00 น.) & NY Killzone (19:30-22:00 น.)',
+          volumeAnalysis: parsedData.volumeAndSessions?.volumeAnalysis || 'ปริมาณวอลุ่มอยู่ในระดับปกติของวัน'
+        },
+        priceActionPatterns: {
+          candlestickPattern: parsedData.priceActionPatterns?.candlestickPattern || 'แท่งเทียนสร้างฐานในกรอบสะสมราคา',
+          chartPattern: parsedData.priceActionPatterns?.chartPattern || 'โครงสร้างแกว่งตัวในกรอบ Ranging Box',
+          marketStructure: parsedData.priceActionPatterns?.marketStructure || 'โครงสร้างราคาทรงตัว รอเลือกทิศทาง'
+        },
         keyLevels: {
           resistanceZones: Array.isArray(parsedData.keyLevels?.resistanceZones) ? parsedData.keyLevels.resistanceZones : [],
           supportZones: Array.isArray(parsedData.keyLevels?.supportZones) ? parsedData.keyLevels.supportZones : [],
@@ -1376,7 +1501,8 @@ ${customNotes ? `หมายเหตุเพิ่มเติมจากเ
           buyPlan: parsedData.tradingPlan?.buyPlan || '',
           sellPlan: parsedData.tradingPlan?.sellPlan || '',
           noTradeCondition: parsedData.tradingPlan?.noTradeCondition || ''
-        }
+        },
+        chartImageAnalysisNote: parsedData.chartImageAnalysisNote || (chartImageBase64 ? 'นำข้อมูลกราฟที่แนบมาผสานวิเคราะห์เรียบร้อยแล้ว' : undefined)
       };
 
       res.json(resultData);

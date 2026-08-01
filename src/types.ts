@@ -238,6 +238,22 @@ export interface DailyMarketAnalysisResult {
   preferredSide: PreferredSideType;
   preferredSideTitle: string;
   advantageSummary: string;
+  dailyExecutiveSummary: string; // บทสรุปภาพรวมการวิเคราะห์ประจำวัน
+  newsAndMacro: {
+    summary: string;
+    catalysts: string[];
+    sentimentScore: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
+  };
+  volumeAndSessions: {
+    sessionAdvice: string;
+    activeSessionKillzone: string;
+    volumeAnalysis: string;
+  };
+  priceActionPatterns: {
+    candlestickPattern: string;
+    chartPattern: string;
+    marketStructure: string;
+  };
   keyLevels: {
     resistanceZones: string[];
     supportZones: string[];
@@ -250,5 +266,6 @@ export interface DailyMarketAnalysisResult {
     sellPlan?: string;
     noTradeCondition?: string;
   };
+  chartImageAnalysisNote?: string; // การวิเคราะห์เพิ่มเติมจากรูปกราฟแนบ (ถ้ามี)
 }
 

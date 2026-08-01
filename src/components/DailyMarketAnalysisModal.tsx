@@ -16,7 +16,13 @@ import {
   CheckCircle2,
   Sparkles,
   BarChart,
-  DollarSign
+  DollarSign,
+  Globe,
+  Clock,
+  Flame,
+  CandlestickChart,
+  FileText,
+  Image as ImageIcon
 } from 'lucide-react';
 
 interface DailyMarketAnalysisModalProps {
@@ -196,6 +202,17 @@ export const DailyMarketAnalysisModal: React.FC<DailyMarketAnalysisModalProps> =
     }
   };
 
+  const getSentimentBadge = (sentiment?: string) => {
+    switch (sentiment) {
+      case 'BULLISH':
+        return <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold text-[10px]">Bullish Catalyst 🟢</span>;
+      case 'BEARISH':
+        return <span className="bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded-full font-bold text-[10px]">Bearish Catalyst 🔴</span>;
+      default:
+        return <span className="bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full font-bold text-[10px]">Neutral Sentiment ⚪</span>;
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
       <div className="relative w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col">
@@ -210,11 +227,11 @@ export const DailyMarketAnalysisModal: React.FC<DailyMarketAnalysisModalProps> =
               <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
                 วิเคราะห์สภาวะตลาด & หน้าเทรดประจำวัน
                 <span className="text-[10px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-2 py-0.5 rounded-full font-bold">
-                  Daily Bias AI
+                  Daily Intelligence
                 </span>
               </h3>
               <p className="text-xs text-slate-400">
-                ประเมินหน้าเทรดที่ได้เปรียบ สภาวะเทรนด์ / ไซด์เวย์ และกรอบแนวรับแนวต้านประจำวัน
+                ประเมินข่าวสาร มหภาค วอลุ่มการเทรด ช่วงเวลา รูปแบบแท่งเทียน & แพทเทิร์นอัตโนมัติ
               </p>
             </div>
           </div>
@@ -245,7 +262,7 @@ export const DailyMarketAnalysisModal: React.FC<DailyMarketAnalysisModalProps> =
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
                   <DollarSign className="w-4 h-4 text-cyan-400" />
-                  เลือกสินทรัพย์ที่ต้องการวิเคราะห์สภาวะตลาด:
+                  เลือกสินทรัพย์ที่ต้องการให้ AI รวบรวมข้อมูลและวิเคราะห์สภาวะตลาด:
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {presetSymbols.map((item) => (
@@ -280,10 +297,10 @@ export const DailyMarketAnalysisModal: React.FC<DailyMarketAnalysisModalProps> =
                 <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
                     <Upload className="w-4 h-4 text-emerald-400" />
-                    แนบรูปภาพกราฟ D1 / H4 (ไม่บังคับ - AI สแกนวิเคราะห์ภาพรวม):
+                    แนบรูปภาพกราฟ (ออปชั่นเสริม - AI สแกนผสานวิเคราะห์เพิ่ม):
                   </span>
-                  <span className="text-[10px] text-slate-400 font-normal">
-                    (ช่วยให้ผลลัพธ์แม่นยำยิ่งขึ้น)
+                  <span className="text-[10px] text-cyan-400 font-normal">
+                    (หากไม่แนบ AI จะใช้วิเคราะห์อัตโนมัติ)
                   </span>
                 </label>
 
@@ -309,7 +326,7 @@ export const DailyMarketAnalysisModal: React.FC<DailyMarketAnalysisModalProps> =
                   >
                     <Upload className="w-8 h-8 mx-auto text-slate-500 group-hover:text-cyan-400 transition mb-2" />
                     <p className="text-xs font-medium text-slate-300">
-                      คลิกเพื่ออัปโหลดรูปภาพกราฟ Timeframe ใหญ่ (D1, H4, H1)
+                      คลิกเพื่ออัปโหลดรูปภาพกราฟ (D1, H4, H1) หากต้องการวิเคราะห์ร่วมกับรูปกราฟของคุณ
                     </p>
                     <p className="text-[11px] text-slate-500 mt-1">
                       รองรับไฟล์ PNG, JPG, WEBP (สูงสุด 8MB)
@@ -329,7 +346,7 @@ export const DailyMarketAnalysisModal: React.FC<DailyMarketAnalysisModalProps> =
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
                   <Layers className="w-4 h-4 text-amber-400" />
-                  หมายเหตุเพิ่มเติม / ประเด็นข่าวสัปดาห์นี้ที่กังวล:
+                  หมายเหตุเพิ่มเติม / ข้อกังวลส่วนตัว (ไม่บังคับ):
                 </label>
                 <textarea
                   value={customNotes}
@@ -349,7 +366,7 @@ export const DailyMarketAnalysisModal: React.FC<DailyMarketAnalysisModalProps> =
                 {isLoading ? (
                   <>
                     <RefreshCw className="w-5 h-5 animate-spin" />
-                    <span>AI กำลังวิเคราะห์สภาวะตลาดประจำวัน...</span>
+                    <span>AI กำลังรวบรวมข่าวสาร วอลุ่ม แท่งเทียน & แพทเทิร์น...</span>
                   </>
                 ) : (
                   <>
@@ -371,7 +388,7 @@ export const DailyMarketAnalysisModal: React.FC<DailyMarketAnalysisModalProps> =
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
-                      การประเมินสภาวะตลาดประจำวัน
+                      การประเมินสภาวะตลาดประจำวัน (Daily Market Report)
                     </span>
                     <h4 className="text-base font-black text-slate-100">{analysisResult.symbol}</h4>
                   </div>
@@ -396,7 +413,7 @@ export const DailyMarketAnalysisModal: React.FC<DailyMarketAnalysisModalProps> =
                   <div className={`rounded-3xl border p-5 shadow-2xl bg-gradient-to-br ${sideCard.gradient} space-y-3`}>
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <span className={`text-[10px] px-2.5 py-1 rounded-full uppercase tracking-wider ${sideCard.badge}`}>
-                        Statistical Market Advantage
+                        Primary Market Advantage
                       </span>
                       <span className="text-[11px] text-slate-400">
                         {new Date(analysisResult.timestamp).toLocaleDateString('th-TH', {
@@ -424,6 +441,123 @@ export const DailyMarketAnalysisModal: React.FC<DailyMarketAnalysisModalProps> =
                   </div>
                 );
               })()}
+
+              {/* Daily Executive Summary (บทสรุปภาพรวมประจำวัน) */}
+              {analysisResult.dailyExecutiveSummary && (
+                <div className="bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 rounded-2xl border border-cyan-500/30 p-4 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-cyan-400" />
+                    <h4 className="text-xs font-extrabold text-cyan-300">
+                      บทสรุปผู้บริหารประจำวัน (Executive Daily Summary):
+                    </h4>
+                  </div>
+                  <p className="text-xs text-slate-200 leading-relaxed bg-slate-950/80 p-3.5 rounded-xl border border-slate-800/80 font-medium">
+                    {analysisResult.dailyExecutiveSummary}
+                  </p>
+                </div>
+              )}
+
+              {/* News & Macro Fundamental Analysis */}
+              {analysisResult.newsAndMacro && (
+                <div className="bg-slate-950 rounded-2xl border border-slate-800 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-extrabold text-slate-200 flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-blue-400" />
+                      ข่าวสารเศรษฐกิจ & แรงสนับสนุนมหภาค (Macro Fundamental Drivers):
+                    </h4>
+                    {getSentimentBadge(analysisResult.newsAndMacro.sentimentScore)}
+                  </div>
+
+                  <p className="text-xs text-slate-300 leading-relaxed bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                    {analysisResult.newsAndMacro.summary}
+                  </p>
+
+                  {analysisResult.newsAndMacro.catalysts && analysisResult.newsAndMacro.catalysts.length > 0 && (
+                    <div className="space-y-1 text-xs">
+                      <span className="text-[11px] font-bold text-slate-400">🔥 ข่าวสำคัญ / ตัวแปรขับเคลื่อนราคาหลัก:</span>
+                      <ul className="space-y-1">
+                        {analysisResult.newsAndMacro.catalysts.map((cat, idx) => (
+                          <li key={idx} className="flex items-center gap-2 text-slate-300">
+                            <Flame className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                            <span>{cat}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Volume & Trading Session Dynamics */}
+              {analysisResult.volumeAndSessions && (
+                <div className="bg-slate-950 rounded-2xl border border-slate-800 p-4 space-y-3">
+                  <h4 className="text-xs font-extrabold text-slate-200 flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-purple-400" />
+                    วอลุ่มการเทรด & ช่วงเวลาตลาด (Session & Volume Dynamics):
+                  </h4>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                    <div className="bg-slate-900/70 border border-slate-800 p-3 rounded-xl space-y-1">
+                      <span className="font-bold text-purple-300 text-[11px] flex items-center gap-1">
+                        ⏰ ช่วงเวลาการเทรดที่ได้เปรียบ:
+                      </span>
+                      <p className="text-slate-300 leading-relaxed">{analysisResult.volumeAndSessions.sessionAdvice}</p>
+                    </div>
+
+                    <div className="bg-slate-900/70 border border-slate-800 p-3 rounded-xl space-y-1">
+                      <span className="font-bold text-cyan-300 text-[11px] flex items-center gap-1">
+                        ⚡ Killzone & ช่วงผันผวนสูง:
+                      </span>
+                      <p className="text-slate-300 leading-relaxed">{analysisResult.volumeAndSessions.activeSessionKillzone}</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-purple-950/20 border border-purple-500/20 p-3 rounded-xl text-xs text-purple-200">
+                    <span className="font-bold text-purple-300 block mb-0.5">📊 สภาวะวอลุ่มการซื้อขาย (Volume Analysis):</span>
+                    <span>{analysisResult.volumeAndSessions.volumeAnalysis}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Price Action & Candle Patterns */}
+              {analysisResult.priceActionPatterns && (
+                <div className="bg-slate-950 rounded-2xl border border-slate-800 p-4 space-y-3">
+                  <h4 className="text-xs font-extrabold text-slate-200 flex items-center gap-2">
+                    <CandlestickChart className="w-4 h-4 text-teal-400" />
+                    รูปแบบแท่งเทียน & Chart Patterns (Price Action Structure):
+                  </h4>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                    <div className="bg-teal-950/20 border border-teal-500/20 p-3 rounded-xl space-y-1">
+                      <span className="font-bold text-teal-300 text-[11px]">🕯️ รูปแบบแท่งเทียนเด่น:</span>
+                      <p className="text-slate-300 leading-relaxed">{analysisResult.priceActionPatterns.candlestickPattern}</p>
+                    </div>
+
+                    <div className="bg-cyan-950/20 border border-cyan-500/20 p-3 rounded-xl space-y-1">
+                      <span className="font-bold text-cyan-300 text-[11px]">📐 Chart Pattern:</span>
+                      <p className="text-slate-300 leading-relaxed">{analysisResult.priceActionPatterns.chartPattern}</p>
+                    </div>
+
+                    <div className="bg-emerald-950/20 border border-emerald-500/20 p-3 rounded-xl space-y-1">
+                      <span className="font-bold text-emerald-300 text-[11px]">🏗️ โครงสร้างตลาด:</span>
+                      <p className="text-slate-300 leading-relaxed">{analysisResult.priceActionPatterns.marketStructure}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Chart Image Analysis Note (If attached) */}
+              {analysisResult.chartImageAnalysisNote && (
+                <div className="bg-gradient-to-r from-cyan-950/60 to-teal-950/60 border border-cyan-500/40 p-4 rounded-2xl text-xs space-y-1.5">
+                  <div className="flex items-center gap-2 text-cyan-300 font-extrabold">
+                    <ImageIcon className="w-4 h-4" />
+                    <span>ผลการวิเคราะห์เจาะลึกเพิ่มเติมจากรูปภาพกราฟที่แนบ:</span>
+                  </div>
+                  <p className="text-slate-200 leading-relaxed bg-slate-950/60 p-3 rounded-xl border border-cyan-500/20">
+                    {analysisResult.chartImageAnalysisNote}
+                  </p>
+                </div>
+              )}
 
               {/* Key Levels Section (Demand / Supply / Pivot) */}
               <div className="bg-slate-950 rounded-2xl border border-slate-800 p-4 space-y-3">
