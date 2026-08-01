@@ -105,14 +105,15 @@ export const PasscodeModal: React.FC<PasscodeModalProps> = ({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code: rawCode }),
         });
-        if (res.ok) {
-          validatedData = await res.json();
+        const data = await res.json();
+        if (data) {
+          validatedData = data;
         }
       } catch {
         console.warn('Server passcode verification offline, checking local rules...');
       }
 
-      // 2. Local fallback verification
+      // 2. Local fallback verification (only if server is unreachable)
       if (!validatedData) {
         // Check saved admin passcodes from localStorage or default list
         let storedPasscodes: PasscodeKey[] = DEFAULT_PASSCODES;
@@ -128,19 +129,28 @@ export const PasscodeModal: React.FC<PasscodeModalProps> = ({
         );
 
         if (matched) {
-          validatedData = {
-            valid: true,
-            plan: matched.plan,
-            expiresAt: matched.expiresAt || undefined,
-            message: `เปิดใช้งานรหัส ${matched.code} สิทธิ์ ${matched.plan === 'PRO_ANNUAL' ? 'PRO รายปี' : 'PRO รายเดือน'} เรียบร้อยแล้ว!`,
-          };
-        } else if (rawCode.startsWith('VIP') || rawCode.startsWith('KEY') || rawCode.startsWith('TRADER')) {
-          // Flexible fallback match for VIP format
-          validatedData = {
-            valid: true,
-            plan: 'PRO_ANNUAL',
-            message: `เปิดใช้งาน Passcode ${rawCode} สิทธิ์ VIP Unlimited เรียบร้อยแล้ว!`,
-          };
+          if (matched.usedCount >= matched.maxUses) {
+            validatedData = {
+              valid: false,
+              message: 'Passcode นี้ถูกใช้งานครบจำนวนโควตาแล้ว',
+            };
+          } else if (matched.expiresAt && new Date(matched.expiresAt).getTime() < Date.now()) {
+            validatedData = {
+              valid: false,
+              message: 'Passcode นี้หมดอายุการใช้งานแล้ว',
+            };
+          } else {
+            matched.usedCount += 1;
+            try {
+              localStorage.setItem('trading_chart_ai_passcodes', JSON.stringify(storedPasscodes));
+            } catch {}
+            validatedData = {
+              valid: true,
+              plan: matched.plan,
+              expiresAt: matched.expiresAt || undefined,
+              message: `เปิดใช้งานรหัส ${matched.code} สิทธิ์ ${matched.plan === 'PRO_ANNUAL' ? 'PRO รายปี' : 'PRO รายเดือน'} เรียบร้อยแล้ว!`,
+            };
+          }
         } else {
           validatedData = {
             valid: false,
@@ -297,56 +307,7 @@ export const PasscodeModal: React.FC<PasscodeModalProps> = ({
             </div>
           </form>
 
-          {/* Quick Click Demo Passcodes */}
-          <div className="mt-6 pt-5 border-t border-slate-800/80">
-            <div className="flex items-center justify-between mb-2.5">
-              <span className="text-xs font-semibold text-slate-400 flex items-center gap-1">
-                <Zap className="w-3.5 h-3.5 text-amber-400" />
-                รหัสผ่านสำหรับเปิดใช้งานตัวอย่าง (กดเพื่อใช้ทันที):
-              </span>
-            </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              {DEFAULT_PASSCODES.map((item) => (
-                <div
-                  key={item.code}
-                  onClick={() => {
-                    setInputCode(item.code);
-                    handleActivate(item.code);
-                  }}
-                  className="group flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 cursor-pointer transition"
-                >
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-mono font-bold text-amber-300 text-xs group-hover:text-amber-200">
-                        {item.code}
-                      </span>
-                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400 font-medium">
-                        VIP
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-slate-400 line-clamp-1">{item.note}</p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCopy(item.code);
-                    }}
-                    className="p-1 text-slate-500 hover:text-slate-300 transition"
-                    title="คัดลอกรหัส"
-                  >
-                    {copiedCode === item.code ? (
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                    ) : (
-                      <Copy className="w-3.5 h-3.5" />
-                    )}
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
 
           {/* Info Footer */}
           <div className="mt-5 p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-[11px] text-slate-400 flex items-start gap-2">

@@ -1600,15 +1600,6 @@ ${chartImageBase64 ? `[ผู้ใช้แนบรูปภาพกราฟ
       });
     }
 
-    // Flexible match for VIP prefix codes
-    if (rawCode.startsWith('VIP') || rawCode.startsWith('KEY') || rawCode.startsWith('TRADER')) {
-      return res.json({
-        valid: true,
-        plan: 'PRO_ANNUAL',
-        message: `เปิดใช้งาน Passcode ${rawCode} สิทธิ์ VIP Unlimited เรียบร้อยแล้ว!`,
-      });
-    }
-
     return res.status(404).json({ valid: false, message: 'Passcode หรือ VIP Key ไม่ถูกต้อง หรือถูกยกเลิกแล้ว' });
   });
 
