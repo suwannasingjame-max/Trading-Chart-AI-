@@ -36,26 +36,26 @@ Analyzed with Trading Chart AI Analyzer`;
   };
 
   return (
-    <div className="bg-slate-900/90 rounded-2xl p-6 border border-slate-800 shadow-2xl relative overflow-hidden backdrop-blur-sm">
+    <div className="bg-gradient-to-br from-[#180e35] via-[#120a2a] to-[#1c0f3c] rounded-2xl p-6 border-2 border-yellow-500/40 shadow-2xl relative overflow-hidden backdrop-blur-sm">
       {/* Background Glow */}
       <div
         className={`absolute -top-24 -right-24 w-72 h-72 rounded-full blur-3xl pointer-events-none opacity-20 ${
-          isBuy ? 'bg-emerald-500' : isSell ? 'bg-red-500' : 'bg-amber-500'
+          isBuy ? 'bg-yellow-400' : isSell ? 'bg-red-500' : 'bg-purple-500'
         }`}
       />
 
       <div className="relative z-10 space-y-6">
         {/* Top Header Row */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-800">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-yellow-500/30">
           <div className="flex items-center gap-4">
             {/* Signal Badge Icon */}
             <div
               className={`h-16 w-16 rounded-2xl flex items-center justify-center shadow-xl border shrink-0 ${
                 isBuy
-                  ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 shadow-emerald-950/50'
+                  ? 'bg-yellow-400 text-purple-950 border-yellow-300 shadow-yellow-500/30'
                   : isSell
                   ? 'bg-red-500/20 border-red-500/50 text-red-400 shadow-red-950/50'
-                  : 'bg-amber-500/20 border-amber-500/50 text-amber-400 shadow-amber-950/50'
+                  : 'bg-purple-900/40 border-yellow-500/40 text-yellow-300 shadow-purple-950/50'
               }`}
             >
               {isBuy ? (
@@ -70,30 +70,30 @@ Analyzed with Trading Chart AI Analyzer`;
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <span
-                  className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider border ${
+                  className={`text-xs font-black px-3.5 py-1 rounded-full uppercase tracking-wider border shadow-sm ${
                     isBuy
-                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                      ? 'bg-yellow-400 text-purple-950 border-yellow-300'
                       : isSell
                       ? 'bg-red-500/20 text-red-300 border-red-500/40'
-                      : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                      : 'bg-purple-900/60 text-yellow-300 border-yellow-500/40'
                   }`}
                 >
                   {signal === 'BUY' ? '🟢 BUY SETUP' : signal === 'SELL' ? '🔴 SELL SETUP' : '🟡 NO TRADE / WAIT'}
                 </span>
-                <span className="text-xs text-slate-300 font-semibold bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
+                <span className="text-xs text-yellow-300 font-bold bg-purple-950/90 px-3 py-1 rounded-full border border-yellow-500/30">
                   {symbol}
                 </span>
-                <span className="text-xs text-slate-400 bg-slate-800/60 px-2.5 py-1 rounded-full border border-slate-700/60">
+                <span className="text-xs text-yellow-200/80 bg-purple-900/60 px-2.5 py-1 rounded-full border border-purple-700">
                   ระบบ: {strategyUsed}
                 </span>
                 {result.analysisMode === 'SCALPING' && (
-                  <span className="text-xs font-bold text-amber-300 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/30 flex items-center gap-1">
+                  <span className="text-xs font-black text-purple-950 bg-yellow-400 px-2.5 py-1 rounded-full border border-yellow-300 flex items-center gap-1 shadow-sm">
                     ⚡ สัญญาณสายซิ่ง M1 (Scalper Bounce)
                   </span>
                 )}
               </div>
 
-              <h2 className="text-xl font-extrabold text-slate-100 mt-2">
+              <h2 className="text-xl font-black text-slate-100 mt-2">
                 {isBuy
                   ? `วิเคราะห์พบสัญญาณซื้อ (BUY) ใน ${symbol}`
                   : isSell
@@ -106,67 +106,67 @@ Analyzed with Trading Chart AI Analyzer`;
           {/* Confidence Score & Copy Button */}
           <div className="flex items-center gap-3 self-start md:self-auto">
             {/* Confidence Score Gauge */}
-            <div className="bg-slate-800/80 px-4 py-2.5 rounded-xl border border-slate-700 text-center">
-              <span className="text-[10px] text-slate-400 block font-medium uppercase tracking-wider">
+            <div className="bg-purple-950/90 px-4 py-2.5 rounded-xl border border-yellow-500/40 text-center shadow-md">
+              <span className="text-[10px] text-yellow-300/80 block font-bold uppercase tracking-wider">
                 AI Confidence
               </span>
               <div className="flex items-baseline justify-center gap-1">
-                <span className="text-xl font-extrabold text-emerald-400">{confidenceScore}%</span>
-                <Award className="w-4 h-4 text-emerald-400" />
+                <span className="text-xl font-black text-yellow-300">{confidenceScore}%</span>
+                <Award className="w-4 h-4 text-yellow-400" />
               </div>
             </div>
 
             <button
               onClick={handleCopySetup}
-              className={`flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-bold transition shadow-lg border ${
+              className={`flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-black transition shadow-lg border ${
                 copied
-                  ? 'bg-emerald-600 text-slate-950 border-emerald-500'
-                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700 hover:border-emerald-500/50'
+                  ? 'bg-yellow-400 text-purple-950 border-yellow-300'
+                  : 'bg-yellow-400 hover:bg-yellow-300 text-purple-950 border-yellow-300 shadow-yellow-500/30'
               }`}
             >
-              {copied ? <Check className="w-4 h-4 text-slate-950" /> : <Copy className="w-4 h-4 text-emerald-400" />}
+              {copied ? <Check className="w-4 h-4 text-purple-950" /> : <Copy className="w-4 h-4 text-purple-950" />}
               <span>{copied ? 'คัดลอกเรียบร้อย!' : 'คัดลอกจุดเข้า MT4/MT5'}</span>
             </button>
           </div>
         </div>
 
         {/* Overall Reason */}
-        <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/60">
-          <p className="text-sm text-slate-200 leading-relaxed font-medium">
-            <span className="text-emerald-400 font-bold">💡 สรุปวิเคราะห์ AI:</span> {overallReasoning}
+        <div className="bg-purple-950/60 p-4 rounded-xl border border-yellow-500/30">
+          <p className="text-sm text-slate-100 leading-relaxed font-medium">
+            <span className="text-yellow-300 font-black">💡 สรุปวิเคราะห์ AI:</span> {overallReasoning}
           </p>
         </div>
 
         {/* Key Trading Metrics Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <div className="bg-slate-800/60 p-3.5 rounded-xl border border-slate-700/70">
-            <span className="text-[11px] text-slate-400 block font-medium">ประเภทคำสั่ง</span>
+          <div className="bg-purple-950/80 p-3.5 rounded-xl border border-yellow-500/30">
+            <span className="text-[11px] text-yellow-300/80 block font-bold">ประเภทคำสั่ง</span>
             <span className="text-sm font-bold text-slate-100">{tradeSetup.entryType}</span>
           </div>
 
-          <div className="bg-emerald-950/40 p-3.5 rounded-xl border border-emerald-500/30">
-            <span className="text-[11px] text-emerald-400 block font-semibold">จุดเข้า Entry</span>
-            <span className="text-base font-black text-emerald-300">{tradeSetup.entryPrice}</span>
+          <div className="bg-yellow-400 p-3.5 rounded-xl border border-yellow-300 shadow-md">
+            <span className="text-[11px] text-purple-950 block font-black">จุดเข้า Entry</span>
+            <span className="text-base font-black text-purple-950">{tradeSetup.entryPrice}</span>
           </div>
 
-          <div className="bg-red-950/40 p-3.5 rounded-xl border border-red-500/30">
-            <span className="text-[11px] text-red-400 block font-semibold">ตัดขาดทุน (SL)</span>
+          <div className="bg-red-950/60 p-3.5 rounded-xl border border-red-500/40">
+            <span className="text-[11px] text-red-300 block font-bold">ตัดขาดทุน (SL)</span>
             <span className="text-base font-black text-red-300">{tradeSetup.stopLoss}</span>
           </div>
 
-          <div className="bg-cyan-950/40 p-3.5 rounded-xl border border-cyan-500/30">
-            <span className="text-[11px] text-cyan-400 block font-semibold">ทำกำไร (TP1)</span>
-            <span className="text-base font-black text-cyan-300">{tradeSetup.takeProfit1}</span>
+          <div className="bg-purple-900/60 p-3.5 rounded-xl border border-yellow-500/40">
+            <span className="text-[11px] text-yellow-300 block font-bold">ทำกำไร (TP1)</span>
+            <span className="text-base font-black text-yellow-300">{tradeSetup.takeProfit1}</span>
           </div>
 
-          <div className="bg-sky-950/40 p-3.5 rounded-xl border border-sky-500/30">
-            <span className="text-[11px] text-sky-400 block font-semibold">ทำกำไร (TP2 / TP3)</span>
-            <span className="text-sm font-bold text-sky-200">{tradeSetup.takeProfit2} / {tradeSetup.takeProfit3}</span>
+          <div className="bg-purple-950/80 p-3.5 rounded-xl border border-purple-800">
+            <span className="text-[11px] text-yellow-200/80 block font-bold">ทำกำไร (TP2 / TP3)</span>
+            <span className="text-sm font-bold text-yellow-200">{tradeSetup.takeProfit2} / {tradeSetup.takeProfit3}</span>
           </div>
 
-          <div className="bg-amber-950/40 p-3.5 rounded-xl border border-amber-500/30">
-            <span className="text-[11px] text-amber-400 block font-semibold">Risk : Reward</span>
-            <span className="text-base font-black text-amber-300">{tradeSetup.riskRewardRatio}</span>
+          <div className="bg-yellow-500/20 p-3.5 rounded-xl border border-yellow-500/40">
+            <span className="text-[11px] text-yellow-300 block font-bold">Risk : Reward</span>
+            <span className="text-base font-black text-yellow-300">{tradeSetup.riskRewardRatio}</span>
           </div>
         </div>
 

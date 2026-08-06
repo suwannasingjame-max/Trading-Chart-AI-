@@ -10,6 +10,7 @@ interface NavbarProps {
   onOpenPositionAudit: () => void;
   onOpenDailyAnalysis: () => void;
   onOpenPasscode: () => void;
+  onOpenTradingView: () => void;
   historyCount: number;
   user: UserProfile;
 }
@@ -22,72 +23,84 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenPositionAudit,
   onOpenDailyAnalysis,
   onOpenPasscode,
+  onOpenTradingView,
   historyCount,
   user,
 }) => {
   const isVip = !!user.activatedPasscode || user.plan !== 'FREE';
 
   return (
-    <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 text-slate-100 px-4 lg:px-8 py-3.5 shadow-lg">
+    <header className="sticky top-0 z-40 bg-[#0f0a1c]/95 backdrop-blur-md border-b-2 border-yellow-500/40 text-slate-100 px-4 lg:px-8 py-3.5 shadow-2xl shadow-purple-950/50">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Brand Logo & Title */}
         <div className="flex items-center gap-3">
           <div 
             onClick={onOpenAdmin}
-            className="h-10 w-10 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-cyan-500 p-0.5 shadow-md shadow-emerald-950/40 flex items-center justify-center cursor-pointer select-none"
+            className="h-10 w-10 rounded-xl bg-yellow-400 p-0.5 shadow-md shadow-yellow-500/30 flex items-center justify-center cursor-pointer select-none"
             title="Trading Chart AI"
           >
-            <div className="h-full w-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-              <TrendingUp className="h-5 w-5 text-emerald-400" />
+            <div className="h-full w-full bg-[#0b0718] rounded-[10px] flex items-center justify-center">
+              <TrendingUp className="h-5 w-5 text-yellow-400" />
             </div>
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold bg-gradient-to-r from-slate-100 via-slate-200 to-emerald-400 bg-clip-text text-transparent">
-                Trading Chart AI Analyzer
+              <h1 className="text-lg font-black text-slate-100 flex items-center gap-2">
+                <span>Trading Chart AI Analyzer</span>
               </h1>
-              <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                <Sparkles className="w-3 h-3" /> 3-TF AI
+              <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-black px-2.5 py-0.5 rounded-full bg-yellow-400 text-purple-950 border border-yellow-300 shadow-sm">
+                <Sparkles className="w-3 h-3 text-purple-950" /> 3-TF AI
               </span>
             </div>
-            <p className="text-xs text-slate-400 hidden sm:block">
-              วิเคราะห์กราฟ 3 TF (H4, H1, M15) ด้วย AI คำนวณจุดเข้า Entry / SL / TP
+            <p className="text-xs text-yellow-200/80 hidden sm:block font-medium">
+              วิเคราะห์กราฟ Multi-Timeframe (H4, H1, M15, M5, M1) คำนวณจุดเข้า Entry / SL / TP
             </p>
           </div>
         </div>
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* TradingView Live Chart Button */}
+          <button
+            onClick={onOpenTradingView}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-yellow-400 hover:bg-yellow-300 text-purple-950 font-black text-xs transition border border-yellow-300 shadow-md"
+            title="เปิดดูกราฟสด TradingView (FPMARKETS:XAUUSD)"
+          >
+            <TrendingUp className="w-4 h-4 text-purple-950" />
+            <span className="hidden sm:inline">📈 กราฟสด TradingView</span>
+            <span className="sm:hidden">กราฟสด</span>
+          </button>
+
           {/* Passcode / VIP Key Button */}
           <button
             onClick={onOpenPasscode}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition border shadow-sm ${
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl font-black text-xs transition border shadow-md ${
               isVip
-                ? 'bg-gradient-to-r from-amber-500/20 to-emerald-500/20 hover:from-amber-500/30 hover:to-emerald-500/30 text-amber-300 border-amber-500/40'
-                : 'bg-slate-800 hover:bg-slate-700 text-amber-400 border-amber-500/30'
+                ? 'bg-yellow-400 text-purple-950 border-yellow-300 shadow-yellow-500/30'
+                : 'bg-purple-950/90 hover:bg-purple-900 text-yellow-300 border-yellow-500/50'
             }`}
             title="กรอก Passcode หรือ VIP License Key"
           >
             {isVip ? (
-              <Crown className="w-4 h-4 text-amber-400 animate-pulse" />
+              <Crown className="w-4 h-4 text-purple-950 animate-pulse" />
             ) : (
-              <Key className="w-4 h-4 text-amber-400" />
+              <Key className="w-4 h-4 text-yellow-400" />
             )}
             <span className="hidden sm:inline">
-              {isVip ? `VIP Active (${user.activatedPasscode || user.plan})` : '🔑 กรอก Passcode / VIP Key'}
+              {isVip ? `VIP Active (${user.activatedPasscode || user.plan})` : '🔑 VIP Key'}
             </span>
             <span className="sm:hidden">
-              {isVip ? 'VIP' : 'Passcode'}
+              {isVip ? 'VIP' : 'VIP Key'}
             </span>
           </button>
 
           {/* Daily Market Analysis Button */}
           <button
             onClick={onOpenDailyAnalysis}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-cyan-500/20 hover:from-emerald-500/30 hover:to-cyan-500/30 text-emerald-300 font-bold text-xs transition border border-emerald-500/40 shadow-sm"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-purple-950/90 hover:bg-purple-900 text-yellow-300 font-bold text-xs transition border border-yellow-500/40 shadow-md"
             title="วิเคราะห์สภาวะตลาดประจำวัน & หน้าเทรดที่ได้เปรียบ"
           >
-            <Compass className="w-4 h-4 text-emerald-400" />
+            <Compass className="w-4 h-4 text-yellow-400" />
             <span className="hidden sm:inline">สภาวะตลาดประจำวัน</span>
             <span className="sm:hidden">สภาวะตลาด</span>
           </button>
@@ -95,24 +108,24 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Active Order Audit Button */}
           <button
             onClick={onOpenPositionAudit}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500/20 via-teal-500/20 to-emerald-500/20 hover:from-cyan-500/30 hover:to-emerald-500/30 text-cyan-300 font-bold text-xs transition border border-cyan-500/40 shadow-sm"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-purple-950/90 hover:bg-purple-900 text-yellow-200 font-bold text-xs transition border border-purple-800 shadow-md"
             title="วิเคราะห์ออเดอร์ที่เปิดอยู่"
           >
-            <BarChart2 className="w-4 h-4 text-cyan-400" />
+            <BarChart2 className="w-4 h-4 text-yellow-400" />
             <span className="hidden sm:inline">วิเคราะห์ออเดอร์</span>
-            <span className="sm:hidden">วิเคราะห์ออเดอร์</span>
+            <span className="sm:hidden">ออเดอร์</span>
           </button>
 
           {/* History Button */}
           <button
             onClick={onOpenHistory}
-            className="relative flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium transition border border-slate-700/60"
+            className="relative flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-purple-950/90 hover:bg-purple-900 text-yellow-200 text-xs font-bold transition border border-purple-800"
             title="ประวัติการวิเคราะห์"
           >
-            <History className="w-4 h-4 text-cyan-400" />
+            <History className="w-4 h-4 text-yellow-400" />
             <span className="hidden lg:inline">ประวัติ</span>
             {historyCount > 0 && (
-              <span className="px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-cyan-500 text-slate-950">
+              <span className="px-1.5 py-0.2 text-[10px] font-black rounded-full bg-yellow-400 text-purple-950">
                 {historyCount}
               </span>
             )}
@@ -121,10 +134,10 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Help Button */}
           <button
             onClick={onOpenHelp}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition border border-slate-700/60"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-900/80 hover:bg-purple-800 text-yellow-300 text-xs font-bold transition border border-purple-700"
             title="คู่มือการใช้งาน"
           >
-            <HelpCircle className="w-4 h-4 text-emerald-400" />
+            <HelpCircle className="w-4 h-4 text-yellow-400" />
             <span className="hidden lg:inline">วิธีใช้</span>
           </button>
         </div>

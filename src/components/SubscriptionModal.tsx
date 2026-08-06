@@ -63,26 +63,26 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-4xl w-full p-6 sm:p-8 shadow-2xl relative my-8">
+    <div className="fixed inset-0 z-50 bg-[#090514]/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-gradient-to-br from-[#180e35] via-[#120a2a] to-[#1c0f3c] border-2 border-yellow-500/40 rounded-3xl max-w-4xl w-full p-6 sm:p-8 shadow-2xl relative my-8 text-slate-100">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+          className="absolute top-5 right-5 p-2 rounded-xl bg-purple-950 hover:bg-purple-900 text-yellow-300 transition border border-purple-800"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Modal Header */}
         <div className="text-center space-y-2 mb-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold">
-            <Crown className="w-4 h-4" />
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-yellow-400 text-purple-950 text-xs font-black shadow-md border border-yellow-300">
+            <Crown className="w-4 h-4 text-purple-950" />
             ยกระดับการเทรดด้วยแผนสมาชิก VIP
           </div>
-          <h2 className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-slate-100 via-slate-200 to-emerald-400 bg-clip-text text-transparent">
+          <h2 className="text-2xl sm:text-3xl font-black text-slate-100">
             สมัครสมาชิกเพื่อปลดล็อก AI วิเคราะห์กราฟแบบไม่จำกัด
           </h2>
-          <p className="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto">
+          <p className="text-xs sm:text-sm text-yellow-200/80 font-medium max-w-xl mx-auto">
             เลือกแผนการใช้งานที่เหมาะกับคุณ ยกระดับความแม่นยำในการค้นหาจุดเข้าซื้อขาย Entry / SL / TP ได้ทุกวัน
           </p>
         </div>

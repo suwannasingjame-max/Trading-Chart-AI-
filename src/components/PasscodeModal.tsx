@@ -226,15 +226,15 @@ export const PasscodeModal: React.FC<PasscodeModalProps> = ({
   const isVipActive = !!user.activatedPasscode || user.plan !== 'FREE';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
-      <div className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090514]/85 backdrop-blur-md animate-fade-in">
+      <div className="relative w-full max-w-lg bg-gradient-to-br from-[#180e35] via-[#120a2a] to-[#1c0f3c] border-2 border-yellow-500/40 rounded-2xl shadow-2xl overflow-hidden">
         {/* Header background glow */}
-        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-amber-500 via-emerald-500 to-teal-500" />
+        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-yellow-500 via-amber-400 to-yellow-300" />
 
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-xl transition"
+          className="absolute top-4 right-4 p-2 text-yellow-300/80 hover:text-yellow-200 hover:bg-purple-900/60 rounded-xl transition border border-purple-800"
         >
           <X className="w-5 h-5" />
         </button>
@@ -242,16 +242,16 @@ export const PasscodeModal: React.FC<PasscodeModalProps> = ({
         <div className="p-6">
           {/* Modal Title */}
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500/20 to-emerald-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-inner">
-              <Key className="w-6 h-6 animate-pulse" />
+            <div className="w-12 h-12 rounded-2xl bg-yellow-400 border border-yellow-300 flex items-center justify-center text-purple-950 shadow-md">
+              <Key className="w-6 h-6 animate-pulse text-purple-950" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-xl font-bold text-slate-100">
+                <h3 className="text-xl font-black text-slate-100">
                   ระบบ Passcode / VIP License Key
                 </h3>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-yellow-200/80 font-medium">
                 กรอกรหัสผ่านเพื่อปลดล็อกสิทธิ์ VIP & การวิเคราะห์ AI ไม่จำกัด
               </p>
             </div>
@@ -259,26 +259,26 @@ export const PasscodeModal: React.FC<PasscodeModalProps> = ({
 
           {/* Active VIP Status Banner */}
           {isVipActive && (
-            <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-emerald-950/70 via-teal-950/40 to-slate-900 border border-emerald-500/40 text-slate-200 relative overflow-hidden">
+            <div className="mb-6 p-4 rounded-xl bg-purple-950/80 border border-yellow-500/40 text-slate-100 relative overflow-hidden shadow-inner">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400">
+                  <div className="p-2.5 rounded-xl bg-yellow-400 text-purple-950 font-black shadow-md">
                     <Crown className="w-5 h-5" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-emerald-400 text-sm">
+                      <span className="font-black text-yellow-300 text-sm">
                         สิทธิ์ VIP License เปิดใช้งานอยู่
                       </span>
-                      <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      <span className="px-2.5 py-0.5 text-[10px] font-black rounded-full bg-yellow-400 text-purple-950 border border-yellow-300">
                         ACTIVE
                       </span>
                     </div>
-                    <p className="text-xs text-slate-300 mt-0.5">
+                    <p className="text-xs text-yellow-200/90 mt-0.5 font-medium">
                       {user.activatedPasscode ? (
-                        <>รหัสที่ใช้: <span className="font-mono font-bold text-amber-300">{user.activatedPasscode}</span></>
+                        <>รหัสที่ใช้: <span className="font-mono font-black text-yellow-300">{user.activatedPasscode}</span></>
                       ) : (
-                        <>แพ็กเกจ: <span className="font-semibold text-emerald-300">{user.plan}</span></>
+                        <>แพ็กเกจ: <span className="font-bold text-yellow-300">{user.plan}</span></>
                       )}
                     </p>
                   </div>
@@ -287,7 +287,7 @@ export const PasscodeModal: React.FC<PasscodeModalProps> = ({
                 {user.activatedPasscode && (
                   <button
                     onClick={onDeactivatePasscode}
-                    className="text-[11px] text-slate-400 hover:text-red-400 underline transition"
+                    className="text-[11px] text-yellow-300/80 hover:text-red-400 underline transition font-medium"
                   >
                     ยกเลิกคีย์นี้
                   </button>
@@ -295,9 +295,9 @@ export const PasscodeModal: React.FC<PasscodeModalProps> = ({
               </div>
 
               {user.activatedPasscode && (
-                <div className="mt-3 pt-2.5 border-t border-emerald-500/20 flex items-center justify-between text-xs">
-                  <span className="text-slate-300 font-medium">สิทธิ์การใช้งานของ License Key นี้:</span>
-                  <span className="font-mono font-bold text-amber-300 bg-slate-950/90 px-2.5 py-1 rounded-lg border border-amber-500/30">
+                <div className="mt-3 pt-2.5 border-t border-yellow-500/20 flex items-center justify-between text-xs">
+                  <span className="text-yellow-200/80 font-medium">สิทธิ์การใช้งานของ License Key นี้:</span>
+                  <span className="font-mono font-black text-purple-950 bg-yellow-400 px-2.5 py-1 rounded-lg border border-yellow-300 shadow-sm">
                     {activePasscodeDetail
                       ? `${activePasscodeDetail.usedCount} / ${activePasscodeDetail.maxUses} สิทธิ์`
                       : 'กำลังโหลดสิทธิ์...'}
@@ -309,15 +309,15 @@ export const PasscodeModal: React.FC<PasscodeModalProps> = ({
 
           {/* Success Notification */}
           {successMsg && (
-            <div className="mb-4 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2.5">
-              <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+            <div className="mb-4 p-3.5 rounded-xl bg-yellow-400/20 border border-yellow-400/50 text-yellow-200 text-xs flex items-center gap-2.5 font-medium">
+              <CheckCircle2 className="w-5 h-5 text-yellow-400 flex-shrink-0" />
               <span>{successMsg}</span>
             </div>
           )}
 
           {/* Error Notification */}
           {errorMsg && (
-            <div className="mb-4 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2.5">
+            <div className="mb-4 p-3.5 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2.5 font-medium">
               <AlertCircle className="w-5 h-5 text-rose-400 flex-shrink-0" />
               <span>{errorMsg}</span>
             </div>
@@ -332,7 +332,7 @@ export const PasscodeModal: React.FC<PasscodeModalProps> = ({
             className="space-y-4"
           >
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              <label className="block text-xs font-bold text-yellow-300 mb-1.5">
                 กรอก Passcode หรือ VIP Key (ตัวพิมพ์ใหญ่หรือเล็กก็ได้)
               </label>
               <div className="relative">
@@ -344,22 +344,22 @@ export const PasscodeModal: React.FC<PasscodeModalProps> = ({
                     setErrorMsg(null);
                   }}
                   placeholder="เช่น VIP999, VIP2026, TRADER888"
-                  className="w-full pl-10 pr-24 py-3 rounded-xl bg-slate-950 border border-slate-800 focus:border-emerald-500 text-slate-100 placeholder-slate-500 font-mono tracking-widest text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 transition"
+                  className="w-full pl-10 pr-24 py-3 rounded-xl bg-purple-950/90 border-2 border-yellow-500/40 focus:border-yellow-400 text-yellow-300 placeholder-yellow-500/50 font-mono font-bold tracking-widest text-sm focus:outline-none focus:ring-1 focus:ring-yellow-400 transition"
                   autoFocus
                 />
-                <Key className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Key className="w-4 h-4 text-yellow-400/80 absolute left-3.5 top-1/2 -translate-y-1/2" />
 
                 <button
                   type="submit"
                   disabled={isLoading || !inputCode.trim()}
-                  className="absolute right-1.5 top-1.2 font-semibold text-xs px-3.5 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-1 shadow"
+                  className="absolute right-1.5 top-1.5 font-black text-xs px-4 py-2 rounded-lg bg-yellow-400 hover:bg-yellow-300 text-purple-950 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-1 shadow-md border border-yellow-300"
                 >
                   {isLoading ? (
-                    <span className="inline-block w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                    <span className="inline-block w-4 h-4 border-2 border-purple-950 border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <>
                       <span>ยืนยัน</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      <ArrowRight className="w-3.5 h-3.5 text-purple-950" />
                     </>
                   )}
                 </button>
@@ -367,14 +367,12 @@ export const PasscodeModal: React.FC<PasscodeModalProps> = ({
             </div>
           </form>
 
-
-
           {/* Info Footer */}
-          <div className="mt-5 p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-[11px] text-slate-400 flex items-start gap-2">
-            <Info className="w-4 h-4 text-slate-500 flex-shrink-0 mt-0.5" />
+          <div className="mt-5 p-3 rounded-xl bg-purple-950/60 border border-purple-800 text-[11px] text-yellow-200/80 flex items-start gap-2 font-medium">
+            <Info className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
             <p>
               ผู้ดูแลระบบสามารถสร้างและจัดการ Passcode / License Keys สำหรับแจกสมาชิกได้ในเมนู{' '}
-              <span className="text-emerald-400 font-semibold">"แผงควบคุมผู้ดูแลระบบ (Admin)"</span>
+              <span className="text-yellow-300 font-bold">"แผงควบคุมผู้ดูแลระบบ (Admin)"</span>
             </p>
           </div>
         </div>

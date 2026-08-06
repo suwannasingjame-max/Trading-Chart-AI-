@@ -13,28 +13,28 @@ export const SummaryTable: React.FC<SummaryTableProps> = ({ result }) => {
   const passRate = summaryConditions.length > 0 ? Math.round((totalPassed / summaryConditions.length) * 100) : 0;
 
   return (
-    <div className="bg-slate-900/90 rounded-2xl p-6 border border-slate-800 shadow-xl space-y-6">
+    <div className="bg-gradient-to-br from-[#180e35] via-[#120a2a] to-[#1c0f3c] rounded-2xl p-6 border-2 border-yellow-500/40 shadow-2xl space-y-6 text-slate-100">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-yellow-500/30">
         <div>
           <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-bold">
+            <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-yellow-400 text-purple-950 text-xs font-black">
               4
             </span>
-            <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-emerald-400" />
+            <h2 className="text-base font-black text-slate-100 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-yellow-400" />
               ตารางสรุปเงื่อนไขและเหตุผลประกอบการตัดสินใจ
             </h2>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-yellow-200/80 font-medium mt-1">
             การตรวจสอบตามเช็คลิสต์ระบบ {strategyUsed} แยกตามลำดับขั้นตอนและ Multi-timeframe Alignment
           </p>
         </div>
 
         {/* Pass Rate Indicator */}
-        <div className="flex items-center gap-2 bg-slate-800 px-3.5 py-1.5 rounded-xl border border-slate-700">
-          <span className="text-xs text-slate-400 font-medium">เงื่อนไขผ่าน:</span>
-          <span className="text-sm font-extrabold text-emerald-400">
+        <div className="flex items-center gap-2 bg-purple-950 px-3.5 py-1.5 rounded-xl border border-yellow-500/40 shadow-sm">
+          <span className="text-xs text-yellow-300/80 font-bold">เงื่อนไขผ่าน:</span>
+          <span className="text-sm font-black text-yellow-400">
             {totalPassed} / {summaryConditions.length} ({passRate}%)
           </span>
         </div>

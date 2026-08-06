@@ -101,27 +101,27 @@ export const EaStoreModal: React.FC<EaStoreModalProps> = ({
   const isProVIP = user.plan !== 'FREE';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-6xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col text-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#090514]/85 backdrop-blur-md overflow-y-auto">
+      <div className="relative w-full max-w-6xl bg-gradient-to-br from-[#180e35] via-[#120a2a] to-[#1c0f3c] border-2 border-yellow-500/40 rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col text-slate-100">
         
         {/* HEADER BAR */}
-        <div className="p-4 sm:p-6 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between shrink-0">
+        <div className="p-4 sm:p-6 bg-[#0b0718]/90 border-b border-yellow-500/30 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-2xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-cyan-500 p-0.5 shadow-lg shadow-emerald-950/50 flex items-center justify-center">
-              <div className="h-full w-full bg-slate-950 rounded-[14px] flex items-center justify-center">
-                <Bot className="w-6 h-6 text-emerald-400 animate-pulse" />
+            <div className="h-11 w-11 rounded-2xl bg-yellow-400 p-0.5 shadow-lg shadow-yellow-500/30 flex items-center justify-center">
+              <div className="h-full w-full bg-purple-950 rounded-[14px] flex items-center justify-center">
+                <Bot className="w-6 h-6 text-yellow-400 animate-pulse" />
               </div>
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-xl font-extrabold text-slate-100">
+                <h2 className="text-base sm:text-xl font-black text-slate-100">
                   ร้านค้า EA Trading Bots (Expert Advisors Store)
                 </h2>
-                <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  <Sparkles className="w-3 h-3" /> VERIFIED 99.9% TICK DATA
+                <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-0.5 rounded-full bg-yellow-400 text-purple-950 border border-yellow-300">
+                  <Sparkles className="w-3 h-3 text-purple-950" /> VERIFIED 99.9% TICK DATA
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-yellow-200/80 font-medium">
                 คัดสรรหุ่นยนต์เทรดอัตโนมัติ 100% สำหรับ MT4 / MT5 พร้อมระบบบริหารความเสี่ยงอัจฉริยะ
               </p>
             </div>
@@ -129,7 +129,7 @@ export const EaStoreModal: React.FC<EaStoreModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition"
+            className="p-2 rounded-xl bg-purple-950 hover:bg-purple-900 text-yellow-300 transition border border-purple-800"
           >
             <X className="w-5 h-5" />
           </button>
@@ -137,9 +137,9 @@ export const EaStoreModal: React.FC<EaStoreModalProps> = ({
 
         {/* PRO VIP DISCOUNT BANNER */}
         {!isProVIP && (
-          <div className="bg-gradient-to-r from-amber-950/60 via-amber-900/40 to-slate-950 px-4 py-2.5 border-b border-amber-500/30 flex items-center justify-between text-xs shrink-0">
-            <div className="flex items-center gap-2 text-amber-200">
-              <Crown className="w-4 h-4 text-amber-400 shrink-0" />
+          <div className="bg-purple-950/90 px-4 py-2.5 border-b border-yellow-500/30 flex items-center justify-between text-xs shrink-0">
+            <div className="flex items-center gap-2 text-yellow-300 font-bold">
+              <Crown className="w-4 h-4 text-yellow-400 shrink-0" />
               <span>
                 สมาชิก <strong>PRO VIP</strong> รับส่วนลดพิเศษ <strong>15% - 20%</strong> ทุกรายการสินค้า EA!
               </span>
@@ -150,7 +150,7 @@ export const EaStoreModal: React.FC<EaStoreModalProps> = ({
                   onClose();
                   onUpgradePlan();
                 }}
-                className="px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow transition shrink-0"
+                className="px-3.5 py-1 rounded-lg bg-yellow-400 hover:bg-yellow-300 text-purple-950 font-black text-xs shadow-md border border-yellow-300 transition shrink-0"
               >
                 อัปเกรด VIP
               </button>
@@ -159,7 +159,7 @@ export const EaStoreModal: React.FC<EaStoreModalProps> = ({
         )}
 
         {/* CONTROLS & FILTER BAR */}
-        <div className="p-4 bg-slate-900/90 border-b border-slate-800 flex flex-col md:flex-row items-center justify-between gap-3 shrink-0">
+        <div className="p-4 bg-[#0b0718]/80 border-b border-yellow-500/20 flex flex-col md:flex-row items-center justify-between gap-3 shrink-0">
           {/* Category Tabs */}
           <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 scrollbar-none">
             {[
@@ -175,13 +175,13 @@ export const EaStoreModal: React.FC<EaStoreModalProps> = ({
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition border ${
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black whitespace-nowrap transition border ${
                     isActive
-                      ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-md shadow-emerald-950/30'
-                      : 'bg-slate-800/80 text-slate-300 border-slate-700/60 hover:bg-slate-750 hover:text-slate-100'
+                      ? 'bg-yellow-400 text-purple-950 border-yellow-300 shadow-md shadow-yellow-500/30'
+                      : 'bg-purple-950/80 text-yellow-200/80 border-purple-800 hover:bg-purple-900 hover:text-yellow-200'
                   }`}
                 >
-                  <IconComp className={`w-3.5 h-3.5 ${isActive ? 'text-slate-950' : 'text-slate-400'}`} />
+                  <IconComp className={`w-3.5 h-3.5 ${isActive ? 'text-purple-950' : 'text-yellow-400'}`} />
                   <span>{cat.label}</span>
                 </button>
               );

@@ -17,7 +17,8 @@ import { PositionAuditModal } from './components/PositionAuditModal';
 import { DailyMarketAnalysisModal } from './components/DailyMarketAnalysisModal';
 import { GeminiApiKeyCard } from './components/GeminiApiKeyCard';
 import { PasscodeModal } from './components/PasscodeModal';
-import { Sparkles, Play, RefreshCw, AlertCircle, ShieldCheck, ArrowRight, CheckCircle2, LayoutDashboard, Bot, BarChart2, Zap, Compass } from 'lucide-react';
+import { TradingViewModal } from './components/TradingViewModal';
+import { Sparkles, Play, RefreshCw, AlertCircle, ShieldCheck, ArrowRight, CheckCircle2, LayoutDashboard, Bot, BarChart2, Zap, Compass, TrendingUp } from 'lucide-react';
 
 export default function App() {
   const [analysisMode, setAnalysisMode] = useState<AnalysisMode>('STANDARD');
@@ -46,6 +47,7 @@ export default function App() {
   const [isPositionAuditOpen, setIsPositionAuditOpen] = useState<boolean>(false);
   const [isDailyAnalysisOpen, setIsDailyAnalysisOpen] = useState<boolean>(false);
   const [isPasscodeOpen, setIsPasscodeOpen] = useState<boolean>(false);
+  const [isTradingViewOpen, setIsTradingViewOpen] = useState<boolean>(false);
 
   // User Profile State (Open Access - No Login Required)
   const [user, setUser] = useState<UserProfile>(() => {
@@ -277,7 +279,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-emerald-500 selection:text-slate-950 flex flex-col">
+    <div className="min-h-screen bg-[#0b0718] text-slate-100 font-sans selection:bg-yellow-400 selection:text-purple-950 flex flex-col">
       {/* Top Navigation */}
       <Navbar
         onOpenHistory={() => setIsHistoryOpen(true)}
@@ -287,6 +289,7 @@ export default function App() {
         onOpenPositionAudit={() => setIsPositionAuditOpen(true)}
         onOpenDailyAnalysis={() => setIsDailyAnalysisOpen(true)}
         onOpenPasscode={() => setIsPasscodeOpen(true)}
+        onOpenTradingView={() => setIsTradingViewOpen(true)}
         historyCount={history.length}
         user={user}
       />
@@ -295,43 +298,46 @@ export default function App() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         
         {/* Intro Hero Header (Compact & Functional) */}
-        <div className="bg-gradient-to-r from-slate-900 via-slate-900/90 to-emerald-950/40 p-5 rounded-2xl border border-slate-800 shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+        <div className="bg-gradient-to-r from-[#1b0d3d] via-[#150a30] to-[#2a1708] p-5 rounded-2xl border-2 border-yellow-500/40 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative overflow-hidden">
+          {/* Subtle ambient lighting */}
+          <div className="absolute -top-12 -right-12 w-40 h-40 bg-yellow-500/15 rounded-full blur-3xl pointer-events-none" />
+          
+          <div className="space-y-1 relative z-10">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="px-3 py-0.5 rounded-full text-[11px] font-black bg-yellow-400 text-purple-950 border border-yellow-300 shadow-sm">
                 AI Trading Vision v3.6
               </span>
-              <span className="text-xs text-slate-400">• Multi-Timeframe Chart Analysis Engine</span>
+              <span className="text-xs font-semibold text-yellow-200/90">• Multi-Timeframe Chart Analysis Engine</span>
             </div>
             <h1 className="text-lg sm:text-xl font-black text-slate-100 flex items-center gap-2 flex-wrap">
               <span>วิเคราะห์จุดเข้าเทรดจากรูปภาพกราฟ Multi-Timeframe</span>
-              <span className="text-xs px-2.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              <span className="text-xs font-black px-2.5 py-0.5 rounded-md bg-yellow-400 text-purple-950 border border-yellow-300 shadow-sm">
                 {analysisMode === 'SCALPING' ? '⚡ โหมดเทรดสายซิ่ง (M15-M5-M1)' : '🎯 โหมดมาตรฐาน (H4-H1-M15)'}
               </span>
             </h1>
-            <p className="text-xs text-slate-300">
+            <p className="text-xs text-purple-100/90 leading-relaxed">
               อัปโหลดรูปภาพกราฟ (โหมดมาตรฐาน H4-H1-M15 หรือ ⚡ โหมดสายซิ่ง M15-M5-M1 เข้าเทรด M1 โดนลากน้อย) ให้ AI คำนวณ Entry, SL, TP สรุปเงื่อนไขและวาดบนกราฟ
             </p>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap relative z-10">
             <button
               onClick={() => setIsDailyAnalysisOpen(true)}
-              className="text-xs font-bold px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-cyan-500/20 hover:from-emerald-500/30 hover:to-cyan-500/30 text-emerald-300 border border-emerald-500/40 shadow-md flex items-center gap-1.5 transition"
+              className="text-xs font-black px-3.5 py-2 rounded-xl bg-yellow-400 hover:bg-yellow-300 text-purple-950 border border-yellow-300 shadow-md flex items-center gap-1.5 transition"
             >
-              <Compass className="w-4 h-4 text-emerald-400" />
+              <Compass className="w-4 h-4 text-purple-950" />
               <span>วิเคราะห์สภาวะตลาดประจำวัน</span>
             </button>
             <button
               onClick={() => setIsPositionAuditOpen(true)}
-              className="text-xs font-bold px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500/20 via-teal-500/20 to-emerald-500/20 hover:from-cyan-500/30 hover:to-emerald-500/30 text-cyan-300 border border-cyan-500/40 shadow-md flex items-center gap-1.5 transition"
+              className="text-xs font-bold px-3.5 py-2 rounded-xl bg-purple-950/90 hover:bg-purple-900 text-yellow-300 border border-yellow-500/40 shadow-md flex items-center gap-1.5 transition"
             >
-              <BarChart2 className="w-4 h-4 text-cyan-400" />
+              <BarChart2 className="w-4 h-4 text-yellow-400" />
               <span>วิเคราะห์ออเดอร์ที่เข้าแล้ว</span>
             </button>
             <button
               onClick={() => setIsHelpOpen(true)}
-              className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition shrink-0"
+              className="text-xs font-bold px-3 py-2 rounded-xl bg-purple-900/80 hover:bg-purple-800 text-yellow-200 border border-purple-700 transition shrink-0"
             >
               📖 คู่มือวิธีใช้
             </button>
@@ -361,8 +367,8 @@ export default function App() {
         />
 
         {/* Additional User Notes Input */}
-        <div className="bg-slate-900/80 rounded-2xl p-4 border border-slate-800 shadow-md">
-          <label className="text-xs font-bold text-slate-200 block mb-1.5 flex items-center gap-1.5">
+        <div className="bg-gradient-to-br from-[#180e35] via-[#120a2a] to-[#1c0f3c] rounded-2xl p-4 border-2 border-yellow-500/30 shadow-md">
+          <label className="text-xs font-bold text-yellow-300 block mb-1.5 flex items-center gap-1.5">
             <span>คำแนะนำเพิ่มเติมสำหรับ AI (ระบุจุดที่สนใจ หรือแผนเฉพาะ - Optional):</span>
           </label>
           <input
@@ -370,13 +376,13 @@ export default function App() {
             value={customNotes}
             onChange={(e) => setCustomNotes(e.target.value)}
             placeholder="เช่น 'เน้นมองหาจุดซื้อ Buy ที่โซน Demand ข้างล่าง' หรือ 'ช่วยเช็ค Liquidity Sweep ล่าสุด'"
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
+            className="w-full bg-[#090514] border border-yellow-500/40 focus:border-yellow-400 rounded-xl px-4 py-2.5 text-xs text-slate-100 placeholder-yellow-200/40 focus:outline-none transition shadow-inner"
           />
         </div>
 
         {/* Error Notification */}
         {errorMsg && (
-          <div className="bg-red-950/40 border border-red-500/40 p-4 rounded-xl text-red-300 text-xs flex items-center justify-between gap-2">
+          <div className="bg-red-950/60 border border-red-500/50 p-4 rounded-xl text-red-200 text-xs flex items-center justify-between gap-2 shadow-lg">
             <div className="flex items-center gap-2">
               <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
               <span>{errorMsg}</span>
@@ -391,20 +397,20 @@ export default function App() {
             disabled={isLoading}
             className={`w-full py-4 px-6 rounded-2xl text-sm font-black transition-all duration-300 shadow-xl flex items-center justify-center gap-3 border ${
               isLoading
-                ? 'bg-slate-800 text-slate-400 border-slate-700 cursor-not-allowed'
-                : 'bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 border-emerald-400/50 shadow-emerald-950/50 hover:scale-[1.005] active:scale-[0.995]'
+                ? 'bg-purple-950 text-purple-400 border-purple-900 cursor-not-allowed'
+                : 'bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:from-yellow-300 hover:to-amber-300 text-purple-950 border-yellow-300 shadow-purple-950/80 purple-gold-glow hover:scale-[1.005] active:scale-[0.995]'
             }`}
           >
             {isLoading ? (
               <>
-                <RefreshCw className="w-5 h-5 animate-spin text-emerald-400" />
+                <RefreshCw className="w-5 h-5 animate-spin text-purple-950" />
                 <span>{loadingStep}</span>
               </>
             ) : (
               <>
-                <Sparkles className="w-5 h-5" />
+                <Sparkles className="w-5 h-5 text-purple-950" />
                 <span>วิเคราะห์กราฟ 3 TF ด้วย AI ทันที (Analyze Charts)</span>
-                <ArrowRight className="w-5 h-5" />
+                <ArrowRight className="w-5 h-5 text-purple-950" />
               </>
             )}
           </button>
@@ -412,7 +418,7 @@ export default function App() {
 
         {/* ANALYSIS RESULTS SECTION */}
         {currentAnalysis && (
-          <div id="analysis-result-section" className="space-y-6 pt-6 border-t border-slate-800">
+          <div id="analysis-result-section" className="space-y-6 pt-6 border-t border-purple-900/60">
             {/* Summary Banner Header */}
             <AnalysisSummaryHeader result={currentAnalysis} />
 
@@ -432,16 +438,16 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-12 py-6 border-t border-slate-900 bg-slate-950 text-center text-xs text-slate-500 space-y-2">
+      <footer className="mt-12 py-6 border-t border-purple-900/40 bg-[#090514] text-center text-xs text-purple-300/60 space-y-2">
         <p className="cursor-default" onDoubleClick={() => setIsAdminOpen(true)}>
           Trading Chart AI Analyzer • AI Multi-Timeframe Trading System Analysis
         </p>
         <div className="flex items-center justify-center gap-4 text-[11px]">
-          <button onClick={() => setIsHelpOpen(true)} className="hover:text-emerald-400 underline">
+          <button onClick={() => setIsHelpOpen(true)} className="hover:text-yellow-400 underline">
             คู่มือวิธีใช้
           </button>
         </div>
-        <p className="text-[10px] text-slate-600">
+        <p className="text-[10px] text-purple-300/40">
           คำเตือน: การเทรดสัญญาซื้อขายล่วงหน้า ออปชัน และ Forex มีความเสี่ยงสูง ผลวิเคราะห์ AI เป็นเพียงเครื่องมือช่วยคัดกรองสัญญาณ โปรดบริหารความเสี่ยง (Risk Management) ทุกครั้งก่อนส่งคำสั่ง
         </p>
       </footer>
@@ -489,6 +495,25 @@ export default function App() {
         user={user}
         onActivatePasscode={handleActivatePasscode}
         onDeactivatePasscode={handleDeactivatePasscode}
+      />
+
+      <TradingViewModal
+        isOpen={isTradingViewOpen}
+        onClose={() => setIsTradingViewOpen(false)}
+        defaultSymbol="FPMARKETS:XAUUSD"
+        user={user}
+        initialStrategy={strategy}
+        initialAnalysisMode={analysisMode}
+        onAnalysisResult={(result) => {
+          setCurrentAnalysis(result);
+          setHistory((prev) => [result, ...prev]);
+          try {
+            const updated = [result, ...history];
+            localStorage.setItem('trading_chart_ai_history', JSON.stringify(updated.slice(0, 30)));
+          } catch (e) {
+            console.warn('Failed to save live chart analysis history', e);
+          }
+        }}
       />
     </div>
   );

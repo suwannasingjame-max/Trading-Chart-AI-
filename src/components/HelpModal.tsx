@@ -1,5 +1,5 @@
 import React from 'react';
-import { HelpCircle, X, CheckCircle2, ShieldAlert, Sparkles, Target } from 'lucide-react';
+import { HelpCircle, X, CheckCircle2, ShieldAlert, Sparkles, Target, BookOpen } from 'lucide-react';
 
 interface HelpModalProps {
   isOpen: boolean;
@@ -10,83 +10,87 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl flex flex-col max-h-[85vh] text-slate-200 space-y-4 overflow-y-auto">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+    <div className="fixed inset-0 z-50 bg-[#090514]/85 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
+      <div className="bg-gradient-to-br from-[#180e35] via-[#120a2a] to-[#1c0f3c] border-2 border-yellow-500/40 rounded-2xl max-w-2xl w-full p-6 shadow-2xl flex flex-col max-h-[85vh] text-slate-100 space-y-4 overflow-y-auto relative">
+        {/* Ambient top glow */}
+        <div className="absolute -top-16 -right-16 w-48 h-48 bg-yellow-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex items-center justify-between pb-3 border-b border-yellow-500/30 relative z-10">
           <div className="flex items-center gap-2">
-            <HelpCircle className="w-5 h-5 text-emerald-400" />
-            <h3 className="font-bold text-base text-slate-100">
+            <div className="p-2 rounded-xl bg-yellow-400 text-purple-950 font-black shadow-md">
+              <BookOpen className="w-5 h-5" />
+            </div>
+            <h3 className="font-black text-base text-slate-100">
               คู่มือการใช้งาน Trading Chart AI Analyzer
             </h3>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300"
+            className="p-1.5 rounded-xl bg-purple-950/80 hover:bg-purple-900 text-yellow-300 border border-purple-800 transition"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="space-y-4 text-xs leading-relaxed">
+        <div className="space-y-4 text-xs leading-relaxed relative z-10">
           {/* Step 1 */}
-          <div className="bg-slate-800/60 p-4 rounded-xl border border-slate-700/60 space-y-1.5">
-            <h4 className="font-bold text-sm text-emerald-400 flex items-center gap-2">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-300 text-[11px]">
+          <div className="bg-purple-950/60 p-4 rounded-xl border border-yellow-500/30 space-y-1.5">
+            <h4 className="font-black text-sm text-yellow-300 flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-yellow-400 text-purple-950 text-xs font-black shadow-sm">
                 1
               </span>
-              การเตรียมภาพกราฟ 3 Timeframe (H4, H1, M15)
+              การเตรียมภาพกราฟ Multi-Timeframe (H4, H1, M15, M5, M1)
             </h4>
-            <p className="text-slate-300">
-              เพื่อผลการวิเคราะห์ที่แม่นยำที่สุด แนะนำให้แคปหน้าจอกราฟจาก TradingView หรือ MetaTrader ในสินทรัพย์เดียวกัน โดยแบ่งเป็น 3 กรอบเวลา:
+            <p className="text-yellow-100/90">
+              เพื่อผลการวิเคราะห์ที่แม่นยำที่สุด แนะนำให้แคปหน้าจอกราฟจาก TradingView หรือ MetaTrader ในสินทรัพย์เดียวกัน:
             </p>
-            <ul className="list-disc list-inside space-y-1 text-slate-400 pl-2">
-              <li><strong className="text-slate-200">TF H4:</strong> แสดงภาพรวมโครงสร้างราคาใหญ่ (Higher Timeframe Trend) และแนวรับแนวต้านหลัก</li>
-              <li><strong className="text-slate-200">TF H1:</strong> แสดงการเกิด Liquidity Sweep, Order Block (OB), FVG หรือรูปแบบราคา</li>
-              <li><strong className="text-slate-200">TF M15:</strong> แสดงแท่งเทียนจุดเข้าสัญญาณ (Entry Trigger) และโซนตัดขาดทุน (SL)</li>
+            <ul className="list-disc list-inside space-y-1 text-slate-200 pl-2">
+              <li><strong className="text-yellow-300">TF H4:</strong> แสดงภาพรวมโครงสร้างราคาใหญ่ (Higher Timeframe Trend) และแนวรับแนวต้านหลัก</li>
+              <li><strong className="text-yellow-300">TF H1 / M30:</strong> แสดงการเกิด Liquidity Sweep, Order Block (OB), FVG หรือรูปแบบราคา</li>
+              <li><strong className="text-yellow-300">TF M15 / M5 / M1:</strong> แสดงแท่งเทียนจุดเข้าสัญญาณสไนเปอร์ (Entry Trigger) และโซนตัดขาดทุน (SL) คมกริบ</li>
             </ul>
           </div>
 
           {/* Step 2 */}
-          <div className="bg-slate-800/60 p-4 rounded-xl border border-slate-700/60 space-y-1.5">
-            <h4 className="font-bold text-sm text-blue-400 flex items-center gap-2">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500/20 text-blue-300 text-[11px]">
+          <div className="bg-purple-950/60 p-4 rounded-xl border border-yellow-500/30 space-y-1.5">
+            <h4 className="font-black text-sm text-yellow-300 flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-yellow-400 text-purple-950 text-xs font-black shadow-sm">
                 2
               </span>
-              การเลือกระบบการเทรด (Trading System)
+              การเลือกระบบการเทรด (Trading System) & โหมดวิเคราะห์
             </h4>
-            <p className="text-slate-300">
-              คุณสามารถเลือกระบบที่ต้องการให้ AI ใช้ในการตรวจเช็คได้ เช่น:
+            <p className="text-yellow-100/90">
+              เลือกระบบที่ต้องการให้ AI ตรวจเช็ค (SMC, Price Action, ICT, Supply & Demand) และเลือกโหมด:
             </p>
-            <ul className="list-disc list-inside space-y-1 text-slate-400 pl-2">
-              <li><strong className="text-slate-200">SMC:</strong> ค้นหา Order Block, Fair Value Gap (FVG), ChoCH และ Liquidity Sweep</li>
-              <li><strong className="text-slate-200">Price Action:</strong> ค้นหา Chart Patterns, Trendline Breakout และ Pinbar</li>
-              <li><strong className="text-slate-200">ICT:</strong> ค้นหา Power of 3 (AMD), Judas Swing และโซน OTE 70.5%</li>
+            <ul className="list-disc list-inside space-y-1 text-slate-200 pl-2">
+              <li><strong className="text-yellow-300">🎯 โหมดมาตรฐาน (H4, H1, M15):</strong> วิเคราะห์โครงสร้างหลัก มั่นคง ปลอดภัย</li>
+              <li><strong className="text-yellow-300">⚡ โหมดเทรดสายซิ่ง (6-Timeframe H4-M1):</strong> วิเคราะห์เจาะลึก M1 หาจุดเข้าสไนเปอร์ SL แคบ โดนลากน้อย</li>
             </ul>
           </div>
 
           {/* Step 3 */}
-          <div className="bg-slate-800/60 p-4 rounded-xl border border-slate-700/60 space-y-1.5">
-            <h4 className="font-bold text-sm text-purple-400 flex items-center gap-2">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-purple-500/20 text-purple-300 text-[11px]">
+          <div className="bg-purple-950/60 p-4 rounded-xl border border-yellow-500/30 space-y-1.5">
+            <h4 className="font-black text-sm text-yellow-300 flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-yellow-400 text-purple-950 text-xs font-black shadow-sm">
                 3
               </span>
               การนำผลวิเคราะห์ไปใช้งาน
             </h4>
-            <p className="text-slate-300">
+            <p className="text-yellow-100/90">
               หลัง AI วิเคราะห์เสร็จสิ้น คุณจะได้รับ:
             </p>
-            <ul className="list-disc list-inside space-y-1 text-slate-400 pl-2">
-              <li><strong className="text-slate-200">เส้นระดับราคาซื้อขายบนกราฟ:</strong> Entry, SL, TP1, TP2, TP3 ที่วาดซ้อนบนภาพ M15 ทันที</li>
-              <li><strong className="text-slate-200">ตารางสรุปเงื่อนไข:</strong> ตรวจสอบว่าเงื่อนไขแต่ละข้อผ่านตามกฎระบบหรือไม่</li>
-              <li><strong className="text-slate-200">ปุ่มคัดลอกจุดเข้า MT4/MT5:</strong> กดคัดลอกค่าราคาไปตั้ง pending order ได้ทันที</li>
+            <ul className="list-disc list-inside space-y-1 text-slate-200 pl-2">
+              <li><strong className="text-yellow-300">เส้นระดับราคาซื้อขายบนกราฟ:</strong> Entry, SL, TP1, TP2, TP3 ที่วาดซ้อนบนภาพ M1/M15 ทันที</li>
+              <li><strong className="text-yellow-300">ตารางสรุปเงื่อนไข:</strong> ตรวจสอบว่าเงื่อนไขแต่ละข้อผ่านตามกฎระบบหรือไม่</li>
+              <li><strong className="text-yellow-300">ปุ่มคัดลอกจุดเข้า MT4/MT5:</strong> กดคัดลอกค่าราคาไปตั้ง pending order ได้ทันที</li>
             </ul>
           </div>
         </div>
 
-        <div className="pt-3 border-t border-slate-800 text-center">
+        <div className="pt-3 border-t border-yellow-500/30 text-center relative z-10">
           <button
             onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-lg transition"
+            className="px-6 py-2.5 rounded-xl bg-yellow-400 hover:bg-yellow-300 text-purple-950 font-black text-xs shadow-lg transition border border-yellow-300"
           >
             เข้าใจแล้ว เริ่มต้นใช้งาน
           </button>
@@ -95,3 +99,4 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
     </div>
   );
 };
+

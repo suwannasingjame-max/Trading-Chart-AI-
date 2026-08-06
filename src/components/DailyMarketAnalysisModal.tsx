@@ -217,30 +217,30 @@ export const DailyMarketAnalysisModal: React.FC<DailyMarketAnalysisModalProps> =
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-[#090514]/85 backdrop-blur-md overflow-y-auto">
+      <div className="relative w-full max-w-3xl bg-gradient-to-br from-[#180e35] via-[#120a2a] to-[#1c0f3c] border-2 border-yellow-500/40 rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-slate-900/90 border-b border-slate-800 shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 bg-[#0b0718]/90 border-b border-yellow-500/30 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-gradient-to-tr from-cyan-500 to-teal-500 text-slate-950 shadow-md">
-              <Compass className="w-5 h-5 font-bold" />
+            <div className="p-2.5 rounded-2xl bg-yellow-400 text-purple-950 font-black shadow-md">
+              <Compass className="w-5 h-5 font-black" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
+              <h3 className="text-base font-black text-slate-100 flex items-center gap-2">
                 วิเคราะห์สภาวะตลาด & หน้าเทรดประจำวัน
-                <span className="text-[10px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-2 py-0.5 rounded-full font-bold">
+                <span className="text-[10px] bg-yellow-400 text-purple-950 px-2.5 py-0.5 rounded-full font-black border border-yellow-300">
                   Daily Intelligence
                 </span>
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-yellow-200/80 font-medium">
                 ประเมินข่าวสาร มหภาค วอลุ่มการเทรด ช่วงเวลา รูปแบบแท่งเทียน & แพทเทิร์นอัตโนมัติ
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+            className="p-2 rounded-xl text-yellow-300/80 hover:text-yellow-200 hover:bg-purple-950 transition border border-purple-800"
           >
             <X className="w-5 h-5" />
           </button>

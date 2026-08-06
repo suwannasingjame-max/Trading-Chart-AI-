@@ -253,27 +253,27 @@ export const PositionAuditModal: React.FC<PositionAuditModalProps> = ({
   const symbolsList = ['XAU/USD (Gold)', 'EUR/USD', 'GBP/USD', 'BTC/USD', 'USD/JPY'];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col text-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#090514]/85 backdrop-blur-md overflow-y-auto">
+      <div className="relative w-full max-w-4xl bg-gradient-to-br from-[#180e35] via-[#120a2a] to-[#1c0f3c] border-2 border-yellow-500/40 rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col text-slate-100">
         
         {/* HEADER BAR */}
-        <div className="p-4 sm:p-5 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between shrink-0">
+        <div className="p-4 sm:p-5 bg-[#0b0718]/90 border-b border-yellow-500/30 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-cyan-500 via-emerald-500 to-amber-500 p-0.5 shadow-lg shadow-cyan-950/50 flex items-center justify-center">
-              <div className="h-full w-full bg-slate-950 rounded-[14px] flex items-center justify-center">
-                <BarChart2 className="w-5 h-5 text-cyan-400" />
+            <div className="h-10 w-10 rounded-2xl bg-yellow-400 p-0.5 shadow-lg shadow-yellow-500/30 flex items-center justify-center">
+              <div className="h-full w-full bg-purple-950 rounded-[14px] flex items-center justify-center">
+                <BarChart2 className="w-5 h-5 text-yellow-400" />
               </div>
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-extrabold text-slate-100">
+                <h2 className="text-base sm:text-lg font-black text-slate-100">
                   วิเคราะห์ออเดอร์ที่เปิดอยู่ (Active Position Audit)
                 </h2>
-                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" /> AI TRADE REVIEW
+                <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-yellow-400 text-purple-950 border border-yellow-300 flex items-center gap-1 shadow-sm">
+                  <Sparkles className="w-3 h-3 text-purple-950" /> AI TRADE REVIEW
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-yellow-200/80 font-medium">
                 แนบรูปภาพกราฟออเดอร์ที่คุณเข้าเทรด TF ไหนก็ได้ AI จะช่วยประเมินสถานะกราฟ ข้อควรระวัง และแนะนำว่าจะถือต่อ/บังทุน/หรือปิดออเดอร์
               </p>
             </div>
@@ -281,7 +281,7 @@ export const PositionAuditModal: React.FC<PositionAuditModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition"
+            className="p-2 rounded-xl bg-purple-950 hover:bg-purple-900 text-yellow-300 transition border border-purple-800"
           >
             <X className="w-5 h-5" />
           </button>
